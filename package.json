@@ -1,0 +1,22 @@
+{
+  "name": "virgil",
+  "private": true,
+  "version": "0.1.0",
+  "description": "An open-source RSVP speed reader for macOS",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "node --test tests/*.test.js",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.12.4"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.3",
+    "vite": "^8.3.4"
+  }
+}

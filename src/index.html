@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Virgil</title>
+  <link rel="stylesheet" href="/default/theme.css">
+  <link rel="stylesheet" href="./styles/app.css">
+  <script type="module" src="./main.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <h1 class="brand">Virgil</h1>
+    <div class="titles">
+      <span class="doc-title" id="docTitle">Opening…</span>
+      <span class="source" id="source" hidden></span>
+    </div>
+  </header>
+
+  <section class="lectern" aria-label="Reader">
+    <div class="stage" id="stage" tabindex="0" role="button" aria-label="Play or pause">
+      <div class="guide"></div>
+      <div class="rule"></div>
+      <div class="word" id="word" aria-live="off"><span class="l"></span><span class="p">·</span><span class="r"></span></div>
+      <div class="rule"></div>
+      <div class="guide"></div>
+      <div class="stage-meta"><span class="label" id="wpmLive">300 wpm</span><span class="label" id="eta">— left</span></div>
+      <div class="drop-hint" aria-hidden="true">Drop to read</div>
+    </div>
+    <p class="hint" id="hint">Click the reader or press Space to begin.</p>
+  </section>
+
+  <div class="card context" id="context" aria-label="Current passage"><span id="ctxText"></span></div>
+
+  <section class="controls" aria-label="Controls">
+    <div class="transport">
+      <div class="side"><button class="btn" id="back" type="button" title="Previous sentence (←)">‹ Sentence</button></div>
+      <button class="btn btn--primary btn--lg" id="play" type="button">Read</button>
+      <div class="side right"><button class="btn" id="fwd" type="button" title="Next sentence (→)">Sentence ›</button></div>
+    </div>
+
+    <div class="scrub">
+      <input type="range" id="scrub" min="0" max="100" value="0" aria-label="Position in text">
+      <div class="scrub-row"><span class="label" id="pos">Word 1 of 1</span><span class="label" id="pct">0%</span></div>
+    </div>
+
+    <div class="settings">
+      <div class="setting">
+        <span class="label">Pace</span>
+        <span class="val"><span id="wpmVal">300</span><small class="label">wpm</small></span>
+        <input type="range" id="wpm" min="100" max="1000" step="25" value="300" aria-label="Words per minute">
+      </div>
+      <div class="setting">
+        <span class="label">Words per flash</span>
+        <div class="seg" id="chunkSeg" role="group" aria-label="Words per flash">
+          <button class="btn btn--sm" type="button" data-n="1" aria-pressed="true">1</button>
+          <button class="btn btn--sm" type="button" data-n="2" aria-pressed="false">2</button>
+          <button class="btn btn--sm" type="button" data-n="3" aria-pressed="false">3</button>
+        </div>
+      </div>
+      <div class="setting">
+        <span class="label">Rhythm</span>
+        <label class="choice"><input type="checkbox" id="optPunct" checked> Rest at punctuation</label>
+        <label class="choice"><input type="checkbox" id="optRamp" checked> Ease into pace</label>
+      </div>
+      <div class="setting" id="themeSetting" hidden>
+        <span class="label">Theme</span>
+        <select class="select" id="theme" aria-label="Theme"></select>
+      </div>
+    </div>
+    <p class="keys"><kbd>Space</kbd> read · <kbd>←</kbd><kbd>→</kbd> sentence · <kbd>↑</kbd><kbd>↓</kbd> pace · <kbd>⌘O</kbd> open</p>
+  </section>
+
+  <section class="card panel" aria-labelledby="textH">
+    <h2 id="textH">Add a text</h2>
+    <p>Paste anything, open a .txt, .md, .pdf or .epub file, or drop one on the window. Files are read on your Mac and never uploaded.</p>
+    <label class="label" for="input">Text to read</label>
+    <textarea id="input" class="textarea" placeholder="Paste text here…"></textarea>
+    <div class="row">
+      <button class="btn" id="useText" type="button">Read this text</button>
+      <button class="btn" id="open" type="button">Open file…</button>
+      <button class="btn btn--ghost" id="sample" type="button">Restore sample</button>
+    </div>
+    <span class="status" id="status" role="status"></span>
+  </section>
+
+  <section class="card panel" aria-labelledby="recH">
+    <h2 id="recH">Your reading</h2>
+    <div class="record">
+      <div><span class="label">Words read</span><span class="num" id="stWords">0</span></div>
+      <div><span class="label">Sessions</span><span class="num" id="stSessions">0</span></div>
+      <div><span class="label">Avg pace</span><span class="num" id="stPace">—</span></div>
+    </div>
+    <ul class="log" id="log"></ul>
+    <p class="status" id="logEmpty">Sessions over twenty words are kept here, on this Mac only.</p>
+  </section>
+
+  <p class="footnote">Comprehension tends to slip as pace climbs, and above roughly 400 wpm most readers stop sounding words out in their head. Pause often; the passage appears beneath the reader whenever you stop.</p>
+</div>
+</body>
+</html>

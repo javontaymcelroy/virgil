@@ -1,0 +1,113 @@
+/* Virgil default theme.
+   The app's stylesheet (src/styles/app.css) reads every color, font and size from the custom
+   properties below and hard-codes none, so a theme is just this file with different values.
+
+   To make your own: copy this folder to themes/private/<name>/theme.css (that folder is
+   gitignored), change any values, and pick it under Settings → Theme. Your theme loads after
+   this one, so it only needs the properties it changes, and it may add its own rules. */
+
+:root {
+  color-scheme: light dark;
+
+  /* Surfaces */
+  --bg: #f6f6f4;
+  --surface: #ffffff;
+  --surface-sunken: #efefec;
+  --border: rgba(20, 20, 24, 0.10);
+  --border-strong: rgba(20, 20, 24, 0.24);
+
+  /* Text */
+  --text: #1b1b1f;
+  --text-muted: #5e5f66;
+  --text-faint: #8d8e95;
+
+  /* Accent: primary button, focus, the pivot letter */
+  --accent: #2f3136;
+  --accent-hover: #17181b;
+  --on-accent: #ffffff;
+  --pivot: #d33f32;
+  --focus-ring: 0 0 0 3px rgba(47, 49, 54, 0.25);
+  --selection: rgba(211, 63, 50, 0.18);
+
+  /* Status */
+  --ok: #2f7d5b;
+  --error: #c0352a;
+
+  /* Sliders */
+  --track: rgba(20, 20, 24, 0.12);
+  --track-fill: #2f3136;
+  --thumb: #2f3136;
+  --track-h: 4px;
+  --thumb-size: 14px;
+
+  /* Type */
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+  --font-reading: ui-serif, "New York", "Iowan Old Style", Georgia, serif;
+  --font-word: var(--font-reading);
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-md: 15px;
+  --text-lg: 20px;
+  --text-xl: 28px;
+  --word-size: 56px;
+  --word-size-chunk: 40px;
+  --word-weight: 500;
+  --word-tracking: 0;
+  --heading-weight: 600;
+  --label-tracking: 0.06em;
+  --label-case: uppercase;
+
+  /* Space and shape */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-pill: 999px;
+  --border-width: 1px;
+  --control-h: 36px;
+  --control-h-lg: 44px;
+  --column: 760px;
+  --stage-h: 240px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.04);
+
+  /* Motion */
+  --dur: 140ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161618;
+    --surface: #1f1f22;
+    --surface-sunken: #121214;
+    --border: rgba(235, 235, 240, 0.10);
+    --border-strong: rgba(235, 235, 240, 0.24);
+
+    --text: #ececef;
+    --text-muted: #a3a4ab;
+    --text-faint: #75767d;
+
+    --accent: #ececef;
+    --accent-hover: #ffffff;
+    --on-accent: #161618;
+    --pivot: #ff6b5b;
+    --focus-ring: 0 0 0 3px rgba(236, 236, 239, 0.25);
+    --selection: rgba(255, 107, 91, 0.25);
+
+    --ok: #6cc59b;
+    --error: #ff7a6b;
+
+    --track: rgba(235, 235, 240, 0.14);
+    --track-fill: #ececef;
+    --thumb: #ececef;
+
+    --shadow: none;
+  }
+}
