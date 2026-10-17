@@ -50,7 +50,7 @@ Every color, font and size comes from CSS custom properties in [`themes/default/
 
 You can also make themes without rebuilding, under **Settings → Themes**:
 
-- **New theme** builds one with color pickers, font menus and size sliders, previewing it live as you change them.
+- **New theme** builds one with color pickers (each solid or a gradient), font menus and size sliders, previewing it live as you change them.
 - **Custom theme** takes CSS you write or paste.
 - **Add from file…** takes any `.css` file.
 

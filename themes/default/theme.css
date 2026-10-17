@@ -27,8 +27,15 @@
   --on-accent: #ffffff;
   --pivot: #d33f32;
 
+  /* Backgrounds: colors by default, but any CSS background works, gradients included */
+  --bg-fill: var(--bg);
+  --surface-fill: var(--surface);
+  --primary-fill: var(--accent);
+  --primary-fill-hover: var(--accent-hover);
+
   /* Secondary buttons */
   --button: var(--surface);
+  --button-fill: var(--button);
   --button-text: var(--text);
   --button-border: var(--border-strong);
   --focus-ring: 0 0 0 3px rgba(47, 49, 54, 0.25);

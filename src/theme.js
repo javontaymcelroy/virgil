@@ -43,16 +43,16 @@ const FONTS = {
 };
 const FIELDS = [
   "Colors",
-  { key: "--bg", label: "Background", type: "color" },
-  { key: "--surface", label: "Panels", type: "color" },
-  { key: "--text", label: "Text", type: "color" },
-  { key: "--text-muted", label: "Secondary text", type: "color" },
-  { key: "--pivot", label: "Focus letter", type: "color" },
+  { key: "--bg", label: "Background", type: "color", fill: "--bg-fill" },
+  { key: "--surface", label: "Panels", type: "color", fill: "--surface-fill" },
+  { key: "--text", label: "Text", type: "color", clip: ".brand, .word, .panel h2, .theme-editor h3, .setting .val, .record .num" },
+  { key: "--text-muted", label: "Secondary text", type: "color", clip: ".label, .hint, .keys, .drawer-note, .panel > p, .theme-row small" },
+  { key: "--pivot", label: "Focus letter", type: "color", clip: ".word .p" },
   "Buttons",
-  { key: "--accent", label: "Primary buttons and switches", type: "color" },
-  { key: "--on-accent", label: "Primary button text", type: "color" },
-  { key: "--button", label: "Secondary buttons", type: "color" },
-  { key: "--button-text", label: "Secondary button text", type: "color" },
+  { key: "--accent", label: "Primary buttons and switches", type: "color", fill: "--primary-fill", hover: "--primary-fill-hover" },
+  { key: "--on-accent", label: "Primary button text", type: "color", clip: ".btn--primary, .btn--primary:hover", under: "var(--primary-fill)" },
+  { key: "--button", label: "Secondary buttons", type: "color", fill: "--button-fill" },
+  { key: "--button-text", label: "Secondary button text", type: "color", clip: ".btn:not(.btn--primary, .btn--ghost)", under: "var(--button-fill)" },
   "Fonts",
   { key: "--font-ui", label: "Interface", type: "font" },
   { key: "--font-reading", label: "Reading", type: "font" },
@@ -168,11 +168,11 @@ function confirmButton(text, label, onConfirm) {
 
 const BUTTON_RULES = {
   primary: `.btn--primary, .btn--primary:hover, .btn--primary:active {
-  background: var(--accent); border-color: var(--accent); color: var(--on-accent); box-shadow: none; text-shadow: none;
+  background: var(--primary-fill); border-color: var(--accent); color: var(--on-accent); box-shadow: none; text-shadow: none;
 }
-.btn--primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn--primary:hover { background: var(--primary-fill-hover); border-color: var(--accent-hover); }
 `,
-  secondary: `.btn:not(.btn--primary, .btn--ghost) { background: var(--button); color: var(--button-text); }
+  secondary: `.btn:not(.btn--primary, .btn--ghost) { background: var(--button-fill); color: var(--button-text); }
 `,
 };
 
@@ -254,6 +254,7 @@ function openBuilder(slug, css, builtinName) {
     row.append(name, out || input);
     if (out) row.appendChild(input);
     box.appendChild(row);
+    if (f.type === "color") box.appendChild(gradientRow(f, saved[gradKey(f)]));
   }
   probe.remove();
   $("themeBuilderH").textContent = builtinName ? `Edit ${builtinName}` : slug ? `Edit ${words(slug)}` : "New theme";
@@ -269,6 +270,28 @@ function openBuilder(slug, css, builtinName) {
   (builtinName ? box.querySelector("input") : $("builderName")).focus();
 }
 
+// "Gradient" under each color: a linear gradient from that color to a second one, at an angle.
+// A background color's fill takes it (--bg-fill for --bg, say); a text color's gradient is
+// clipped to the text of the elements in its `clip` selector, over their own background
+// (`under`) when they have one. The color itself stays solid for borders, mixes and the rest.
+const gradKey = f => f.fill || `--grad${f.key.slice(1)}`;
+
+function gradientRow(f, saved) {
+  const [, angle = "180", end = "#000000"] = /linear-gradient\((\d+)deg,\s*#\w+,\s*(#\w+)\)/.exec(saved || "") || [];
+  const row = document.createElement("div"); row.className = "builder-grad"; row.dataset.gradient = f.key;
+  const toggle = document.createElement("label"), on = document.createElement("input");
+  on.type = "checkbox"; on.checked = !!saved; toggle.append(on, "Gradient");
+  const more = document.createElement("span"); more.hidden = !on.checked;
+  const to = document.createElement("input"); to.type = "color"; to.value = end; to.setAttribute("aria-label", `${f.label}: gradient end color`);
+  const turn = document.createElement("input"); turn.type = "range"; Object.assign(turn, { min: 0, max: 360, step: 15, value: angle });
+  turn.setAttribute("aria-label", `${f.label}: gradient angle`);
+  const out = document.createElement("output");
+  more.append(to, turn, out);
+  on.addEventListener("change", () => { more.hidden = !on.checked });
+  row.append(toggle, more);
+  return row;
+}
+
 function builderCss() {
   const changed = new Set(), lines = [];
   for (const i of $("builderFields").querySelectorAll("[data-key]")) {
@@ -281,6 +304,22 @@ function builderCss() {
     lines.push(`${i.dataset.key}: ${i.value}${i.dataset.unit || ""};`);
   }
   // Derived values follow the values they're made from; for a built-in theme, only changed ones.
+  const textRules = [];
+  for (const g of $("builderFields").querySelectorAll("[data-gradient]")) {
+    const [on, to, turn] = g.querySelectorAll("input"), out = g.querySelector("output");
+    out.textContent = `${turn.value}°`;
+    turn.style.setProperty("--fill", `${turn.value / 3.6}%`);
+    if (!on.checked) continue;
+    const f = FIELDS.find(f => f.key === g.dataset.gradient), key = gradKey(f);
+    const from = g.previousElementSibling.querySelector("[data-key]").value;
+    changed.add(key);
+    lines.push(`${key}: linear-gradient(${turn.value}deg, ${from}, ${to.value});`);
+    if (f.hover) lines.push(`${f.hover}: var(${key});`);
+    if (f.clip) {
+      const layers = f.under ? [`var(${key}), ${f.under}`, "text, border-box"] : [`var(${key})`, "text"];
+      textRules.push(`${f.clip} {\n  background: ${layers[0]}; -webkit-background-clip: ${layers[1]}; background-clip: ${layers[1]}; color: transparent;\n}\n`);
+    }
+  }
   const uses = k => !onlyChanged || changed.has(k);
   const get = k => $("builderFields").querySelector(`[data-key="${k}"]`).value;
   if (uses("--bg")) lines.unshift(`color-scheme: ${light(get("--bg")) ? "light" : "dark"};`);
@@ -290,9 +329,10 @@ function builderCss() {
   let css = `${MARK}\n:root {\n${lines.map(l => "  " + l).join("\n")}\n}\n`;
   // A built-in theme may style its buttons with its own rules (Vespertine's steel, say), which
   // the colors alone don't reach; changed button colors bring rules that apply them.
-  if (onlyChanged && (changed.has("--accent") || changed.has("--on-accent"))) css += BUTTON_RULES.primary;
-  if (onlyChanged && (changed.has("--button") || changed.has("--button-text"))) css += BUTTON_RULES.secondary;
-  return css;
+  const any = (...keys) => keys.some(k => changed.has(k));
+  if (onlyChanged && any("--accent", "--on-accent", "--primary-fill")) css += BUTTON_RULES.primary;
+  if (onlyChanged && any("--button", "--button-text", "--button-fill")) css += BUTTON_RULES.secondary;
+  return css + textRules.join("");
 }
 
 function preview() { const d = document.getElementById("theme-draft"); if (d) d.textContent = builderCss() }
