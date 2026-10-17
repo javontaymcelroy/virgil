@@ -38,6 +38,7 @@ h1, h2, p { margin: 0; }
 /* Masthead */
 .masthead { display: flex; align-items: center; gap: var(--space-5); }
 .masthead .titles { margin-left: auto; }
+.masthead-actions { display: flex; gap: var(--space-2); flex: none; }
 .panel-toggle[aria-expanded="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .brand { font: var(--heading-weight) var(--text-xl)/1.1 var(--font-reading); color: var(--text); }
 .titles { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-1); min-width: 0; max-width: 65%; }
@@ -137,6 +138,7 @@ input[type="range"]::-moz-range-thumb { width: var(--thumb-size); height: var(--
 
 .settings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
 .setting { background: var(--surface); border: var(--border-width) solid var(--border); border-radius: var(--radius); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.setting:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .setting .val { font: var(--heading-weight) var(--text-lg)/1.2 var(--font-ui); color: var(--text); font-variant-numeric: tabular-nums; }
 .setting .val small { margin-left: var(--space-2); }
 .choice { display: flex; align-items: center; gap: var(--space-2); cursor: pointer; }
@@ -173,7 +175,7 @@ kbd { font: 500 var(--text-xs)/1 var(--font-mono); border: var(--border-width) s
   border-left: 0 solid var(--border);
   transition: width calc(var(--dur) * 2) var(--ease);
 }
-body.panel-open .drawer { width: var(--panel-w); border-left-width: var(--border-width); }
+.drawer.is-open { width: var(--panel-w); border-left-width: var(--border-width); }
 .drawer-inner { width: var(--panel-w); height: 100%; overflow-y: auto; overscroll-behavior: contain; }
 .drawer-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .drawer-close {
@@ -184,9 +186,29 @@ body.panel-open .drawer { width: var(--panel-w); border-left-width: var(--border
 }
 .drawer-close:hover { color: var(--text); }
 .drawer .textarea { flex: 1; min-height: 200px; }
+.drawer-section { display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-2); }
+.drawer-section h3 { margin: 0; }
+.drawer-note { color: var(--text-muted); font-size: var(--text-sm); }
+
+/* Theme toggles: one row per theme, at most one on; all off means the default theme */
+.theme-list { display: flex; flex-direction: column; border: var(--border-width) solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.theme-row {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+  width: 100%; padding: var(--space-3) var(--space-4);
+  background: var(--surface); color: var(--text); border: 0; border-top: var(--border-width) solid var(--border);
+  font: var(--text-md)/1.4 var(--font-ui); text-align: left; cursor: pointer;
+  transition: background-color var(--dur) var(--ease);
+}
+.theme-row:first-child { border-top: 0; }
+.theme-row:hover { background: var(--surface-sunken); }
+.theme-row small { display: block; color: var(--text-muted); font-size: var(--text-sm); }
+.switch { position: relative; flex: none; width: 36px; height: 20px; border-radius: var(--radius-pill); background: var(--track); transition: background-color var(--dur) var(--ease); }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: var(--radius-pill); background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); transition: transform var(--dur) var(--ease); }
+.theme-row[aria-checked="true"] .switch { background: var(--accent); }
+.theme-row[aria-checked="true"] .switch::after { transform: translateX(16px); background: var(--on-accent); }
 @media (max-width: 979px) {
   .drawer { position: fixed; right: 0; z-index: 10; }
-  body.panel-open .drawer { box-shadow: var(--shadow-overlay); }
+  .drawer.is-open { box-shadow: var(--shadow-overlay); }
 }
 
 /* Record */
@@ -210,5 +232,5 @@ body.panel-open .drawer { width: var(--panel-w); border-left-width: var(--border
 
 @media (prefers-reduced-motion: reduce) {
   .word.enter { animation: none; }
-  .btn, .stage, .drop-hint, .drawer { transition: none; }
+  .btn, .stage, .drop-hint, .drawer, .theme-row, .switch, .switch::after { transition: none; }
 }

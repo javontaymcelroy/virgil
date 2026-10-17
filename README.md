@@ -26,6 +26,8 @@ Coming next: read-aloud with word-synced voices (macOS system voices, a local Ko
 | ↑ ↓ | Pace ±25 wpm |
 | ⌘O | Open a file |
 | ⌘T | Show or hide the Add a text panel |
+| ⌘, | Show or hide Settings |
+| Esc | Close the open panel |
 | ⌘V | Paste anywhere outside a text field to read the clipboard |
 
 ## Build from source
@@ -44,7 +46,7 @@ Tests: `npm test` (reader engine) and `cargo test` in `src-tauri/` (file import)
 
 ## Themes
 
-Every color, font and size comes from CSS custom properties in [`themes/default/theme.css`](themes/default/theme.css); the app's stylesheet hard-codes none of them. To use your own look, create `themes/private/<name>/theme.css`. It loads on top of the default, so it only needs the properties it changes, and it can add its own rules (and `@import` web fonts). `themes/private/` is gitignored: your theme is in your local builds, used automatically, and switchable under **Settings → Theme**, but it is never committed or included in public releases.
+Every color, font and size comes from CSS custom properties in [`themes/default/theme.css`](themes/default/theme.css); the app's stylesheet hard-codes none of them. To use your own look, create `themes/private/<name>/theme.css`. It loads on top of the default, so it only needs the properties it changes, and it can add its own rules (and `@import` web fonts). `themes/private/` is gitignored: your theme is in your local builds, used automatically, and switched on and off under **Settings → Themes**, but it is never committed or included in public releases.
 
 ## Releasing
 
