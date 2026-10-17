@@ -46,6 +46,20 @@ jobs:
             echo "APPLE_TEAM_ID=${{ secrets.APPLE_TEAM_ID }}"
           } >> "$GITHUB_ENV"
 
+      # The release notes say whether this build is signed, and if not, how to open it.
+      - name: Write release notes
+        run: |
+          if [ "$HAS_SIGNING" = true ]; then
+            NOTES='Download the .dmg below, open it, and drag Virgil to Applications.
+
+          This build is signed with an Apple Developer ID and notarized by Apple, so it opens like any other app.'
+          else
+            NOTES='Download the .dmg below, open it, and drag Virgil to Applications.
+
+          This build is not signed by Apple. The first time, right-click Virgil in Applications and choose **Open**, then **Open** again. On macOS 15 and later, if there is no Open button, open Virgil once, then click **Open Anyway** in System Settings → Privacy & Security. After that it opens normally.'
+          fi
+          { echo "RELEASE_NOTES<<EOF"; echo "$NOTES"; echo "EOF"; } >> "$GITHUB_ENV"
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -53,9 +67,6 @@ jobs:
           args: --target universal-apple-darwin
           tagName: ${{ github.ref_name }}
           releaseName: Virgil ${{ github.ref_name }}
-          releaseBody: |
-            Download the .dmg below, open it, and drag Virgil to Applications.
-
-            This build is not signed by Apple yet. The first time, right-click Virgil in Applications and choose **Open**, then **Open** again. After that it opens normally.
+          releaseBody: ${{ env.RELEASE_NOTES }}
           releaseDraft: false
           prerelease: false

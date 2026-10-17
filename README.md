@@ -33,9 +33,9 @@ Coming next: read-aloud with word-synced voices (macOS system voices, a local Ko
 
 1. Download the latest `Virgil_x.y.z_universal.dmg` from [Releases](https://github.com/javontaymcelroy/virgil/releases). It runs on Apple Silicon and Intel Macs, macOS 11 or later.
 2. Open the `.dmg` and drag **Virgil** into **Applications**.
-3. **The first time only:** Virgil isn't signed with an Apple Developer ID yet, so double-clicking it shows a warning that it "can't be opened". Instead, in Applications, **right-click (or Control-click) Virgil → Open**, then click **Open** in the dialog. From then on it opens normally.
+3. Open Virgil. Releases are signed with an Apple Developer ID and notarized by Apple, so it opens like any other app.
 
-   On macOS 15 (Sequoia) and later the right-click route may not show an Open button. In that case, try opening Virgil once, then go to **System Settings → Privacy & Security**, scroll down to the message about Virgil, and click **Open Anyway**.
+   If macOS says Virgil "can't be opened", you have an unsigned build (one you built yourself without signing, or a release whose notes say it isn't signed). Open it once this way: in Applications, **right-click (or Control-click) Virgil → Open**, then click **Open**. On macOS 15 (Sequoia) and later, if there's no Open button, try opening Virgil once, then go to **System Settings → Privacy & Security** and click **Open Anyway** next to the message about Virgil. From then on it opens normally.
 
 ## How to use
 
@@ -90,7 +90,7 @@ The built-in themes (Default and your private ones) have **Edit** too. It opens 
 ## FAQ
 
 **macOS says Virgil “can't be opened” or is from an unidentified developer.**
-Releases aren't signed with an Apple Developer ID yet. Open it once with right-click → **Open**, or with **Open Anyway** in **System Settings → Privacy & Security**; see [Install](#install). After that it opens normally.
+Releases are signed and notarized, so this means you have an unsigned build: one built from source without signing, or a release whose notes say it isn't signed. Open it once with right-click → **Open**, or with **Open Anyway** in **System Settings → Privacy & Security**; see [Install](#install). After that it opens normally.
 
 **Does Virgil upload my files or send anything anywhere?**
 No. Files are converted to text on your Mac, and Virgil itself makes no network requests (a theme you add can load web fonts). Your last text, position, settings and reading history are kept in the app's local storage; your themes are in its app data folder.
@@ -132,9 +132,9 @@ git tag v0.1.0 && git push origin v0.1.0
 
 The [release workflow](.github/workflows/release.yml) builds a universal `.dmg` on GitHub Actions and publishes it as a GitHub Release.
 
-### Signing (optional, removes the first-launch warning)
+### Signing and notarization
 
-With an [Apple Developer Program](https://developer.apple.com/programs/) membership, add these repository secrets and the release workflow signs and notarizes automatically:
+The release workflow signs and notarizes when these repository secrets exist (they need an [Apple Developer Program](https://developer.apple.com/programs/) membership). Without them it still publishes a release, unsigned, and its notes tell people how to open it the first time.
 
 | Secret | Value |
 | --- | --- |
@@ -144,6 +144,30 @@ With an [Apple Developer Program](https://developer.apple.com/programs/) members
 | `APPLE_ID` | Your Apple ID email |
 | `APPLE_PASSWORD` | An [app-specific password](https://support.apple.com/102654) |
 | `APPLE_TEAM_ID` | Your 10-character team ID |
+
+To add them, export the certificate from Keychain Access (**My Certificates →** right-click it **→ Export…**) as `cert.p12`, then:
+
+```sh
+base64 -i cert.p12 | gh secret set APPLE_CERTIFICATE
+gh secret set APPLE_CERTIFICATE_PASSWORD   # each asks for its value
+gh secret set APPLE_SIGNING_IDENTITY
+gh secret set APPLE_ID
+gh secret set APPLE_PASSWORD
+gh secret set APPLE_TEAM_ID
+rm cert.p12
+```
+
+To build a signed, notarized app on your own Mac instead, set the same values (except the certificate, which is already in your keychain) and build for both architectures:
+
+```sh
+rustup target add aarch64-apple-darwin x86_64-apple-darwin
+export APPLE_SIGNING_IDENTITY="Developer ID Application: Your Name (TEAMID)"
+export APPLE_ID="you@example.com" APPLE_TEAM_ID="TEAMID"
+read -s APPLE_PASSWORD && export APPLE_PASSWORD   # the app-specific password
+npm run tauri build -- --target universal-apple-darwin
+```
+
+The `.app` and `.dmg` land in `src-tauri/target/universal-apple-darwin/release/bundle/`. `spctl -a -vvv -t exec Virgil.app` should report `source=Notarized Developer ID`. A local build includes your `themes/private/` themes, so publish only builds made by the release workflow.
 
 ## License
 
