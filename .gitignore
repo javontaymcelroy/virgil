@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.DS_Store
+# Personal themes: used in your local builds, never published.
+themes/private/

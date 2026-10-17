@@ -1,0 +1,61 @@
+name: Release
+
+# Push a version tag (git tag v0.1.0 && git push origin v0.1.0) to build a universal macOS
+# .dmg and publish it as a GitHub Release. Bump "version" in src-tauri/tauri.conf.json first.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    env:
+      # Signing and notarization switch on by themselves once these repo secrets exist
+      # (see README → Signing). Without them the build is unsigned.
+      HAS_SIGNING: ${{ secrets.APPLE_CERTIFICATE != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - run: npm ci
+
+      - name: Load signing secrets
+        if: env.HAS_SIGNING == 'true'
+        run: |
+          {
+            echo "APPLE_CERTIFICATE=${{ secrets.APPLE_CERTIFICATE }}"
+            echo "APPLE_CERTIFICATE_PASSWORD=${{ secrets.APPLE_CERTIFICATE_PASSWORD }}"
+            echo "APPLE_SIGNING_IDENTITY=${{ secrets.APPLE_SIGNING_IDENTITY }}"
+            echo "APPLE_ID=${{ secrets.APPLE_ID }}"
+            echo "APPLE_PASSWORD=${{ secrets.APPLE_PASSWORD }}"
+            echo "APPLE_TEAM_ID=${{ secrets.APPLE_TEAM_ID }}"
+          } >> "$GITHUB_ENV"
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: --target universal-apple-darwin
+          tagName: ${{ github.ref_name }}
+          releaseName: Virgil ${{ github.ref_name }}
+          releaseBody: |
+            Download the .dmg below, open it, and drag Virgil to Applications.
+
+            This build is not signed by Apple yet. The first time, right-click Virgil in Applications and choose **Open**, then **Open** again. After that it opens normally.
+          releaseDraft: false
+          prerelease: false
