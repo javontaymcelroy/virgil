@@ -15,6 +15,10 @@ body {
 h1, h2, p { margin: 0; }
 [hidden] { display: none !important; }
 
+/* App: the reader column, plus the "Add a text" side panel on the right */
+.app { display: flex; align-items: flex-start; min-height: 100vh; }
+.app > .wrap { flex: 1; min-width: 0; }
+
 .wrap {
   max-width: calc(var(--column) + 2 * var(--space-5));
   margin: 0 auto;
@@ -32,7 +36,9 @@ h1, h2, p { margin: 0; }
 }
 
 /* Masthead */
-.masthead { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-5); }
+.masthead { display: flex; align-items: center; gap: var(--space-5); }
+.masthead .titles { margin-left: auto; }
+.panel-toggle[aria-expanded="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .brand { font: var(--heading-weight) var(--text-xl)/1.1 var(--font-reading); color: var(--text); }
 .titles { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-1); min-width: 0; max-width: 65%; }
 .doc-title { font: 500 var(--text-sm)/1.4 var(--font-ui); color: var(--text); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -159,6 +165,30 @@ kbd { font: 500 var(--text-xs)/1 var(--font-mono); border: var(--border-width) s
 .status.err { color: var(--error); }
 .status.ok { color: var(--ok); }
 
+/* Drawer: the "Add a text" panel, docked beside the reader on wide windows, over it on narrow ones */
+.drawer {
+  position: sticky; top: 0; flex: none;
+  width: 0; height: 100vh; overflow: hidden;
+  background: var(--surface);
+  border-left: 0 solid var(--border);
+  transition: width calc(var(--dur) * 2) var(--ease);
+}
+body.panel-open .drawer { width: var(--panel-w); border-left-width: var(--border-width); }
+.drawer-inner { width: var(--panel-w); height: 100%; overflow-y: auto; overscroll-behavior: contain; }
+.drawer-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.drawer-close {
+  width: var(--control-h); height: var(--control-h); flex: none;
+  display: grid; place-items: center; padding: 0;
+  font: var(--text-lg)/1 var(--font-ui); color: var(--text-muted);
+  background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer;
+}
+.drawer-close:hover { color: var(--text); }
+.drawer .textarea { flex: 1; min-height: 200px; }
+@media (max-width: 979px) {
+  .drawer { position: fixed; right: 0; z-index: 10; }
+  body.panel-open .drawer { box-shadow: var(--shadow-overlay); }
+}
+
 /* Record */
 .record { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
 .record > div { background: var(--surface-sunken); border-radius: var(--radius-sm); padding: var(--space-3) var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); }
@@ -180,5 +210,5 @@ kbd { font: 500 var(--text-xs)/1 var(--font-mono); border: var(--border-width) s
 
 @media (prefers-reduced-motion: reduce) {
   .word.enter { animation: none; }
-  .btn, .stage, .drop-hint { transition: none; }
+  .btn, .stage, .drop-hint, .drawer { transition: none; }
 }

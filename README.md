@@ -2,7 +2,7 @@
 
 An open-source RSVP speed reader for macOS. Virgil shows a text one word at a time in a fixed spot, with the letter your eye should land on marked in color, so you read without moving your eyes across a page.
 
-- **Paste text** or **open a file**: `.txt`, `.md`, `.pdf` or `.epub` (or drop one on the window). Files are converted on your Mac and never uploaded.
+- **Paste text** or **open a file** from the Add a text side panel (⌘T): `.txt`, `.md`, `.pdf` or `.epub` (or drop one on the window). Files are converted on your Mac and never uploaded.
 - Pace from 100 to 1000 words per minute, one to three words per flash, pauses at punctuation and paragraph breaks, and an ease-in at the start.
 - Pausing shows the surrounding passage. Virgil remembers the last text and where you stopped, plus a short history of your sessions.
 - Native and lightweight: built with [Tauri](https://tauri.app).
@@ -25,6 +25,7 @@ Coming next: read-aloud with word-synced voices (macOS system voices, a local Ko
 | ← → | Previous / next sentence |
 | ↑ ↓ | Pace ±25 wpm |
 | ⌘O | Open a file |
+| ⌘T | Show or hide the Add a text panel |
 | ⌘V | Paste anywhere outside a text field to read the clipboard |
 
 ## Build from source
