@@ -56,6 +56,8 @@ You can also make themes without rebuilding, under **Settings → Themes**:
 
 They are saved in Virgil's app data on your Mac (`~/Library/Application Support/io.github.javontaymcelroy.virgil/themes/`) and listed with a switch, **Edit** (renaming included) and **Delete**.
 
+The built-in themes (Default and your private ones) have **Edit** too. It opens the builder on the theme's current look and saves only what you change, layered on top of the original, so the theme's own rules and fonts stay. **Reset** removes your changes.
+
 ## Releasing
 
 Bump `version` in `src-tauri/tauri.conf.json` and `package.json`, commit, then tag:

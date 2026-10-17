@@ -108,8 +108,8 @@ body.dropping .drop-hint { opacity: 1; }
   display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
   height: var(--control-h); padding: 0 var(--space-4);
   font: 500 var(--text-sm)/1 var(--font-ui);
-  color: var(--text); background: var(--surface);
-  border: var(--border-width) solid var(--border-strong); border-radius: var(--radius-sm);
+  color: var(--button-text); background: var(--button);
+  border: var(--border-width) solid var(--button-border); border-radius: var(--radius-sm);
   cursor: pointer; white-space: nowrap;
   transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease), transform var(--dur) var(--ease);
 }

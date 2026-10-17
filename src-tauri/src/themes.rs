@@ -1,6 +1,8 @@
 //! Themes added from Settings → Themes. Each is a single .css file copied into
 //! `<app data>/themes/<slug>.css` and served to the page as `vtheme://localhost/<slug>.css`,
 //! so `@import` web fonts work and the page never needs file-system access.
+//! Changes made to a built-in theme (Default or a private one) are kept the same way, as
+//! `_<theme>.css`, layered on top of it until reset.
 
 use std::path::PathBuf;
 use tauri::http::{Request, Response, StatusCode};
@@ -40,8 +42,10 @@ pub fn slug(stem: &str) -> String {
     }
 }
 
-/// Only names `slug` could have produced reach the file system, so no path can escape the folder.
+/// Only names `slug` could have produced (or `_` plus one, for edits to a built-in theme) reach
+/// the file system, so no path can escape the folder.
 fn is_slug(name: &str) -> bool {
+    let name = name.strip_prefix('_').unwrap_or(name);
     !name.is_empty()
         && name.len() <= 40
         && name
@@ -135,6 +139,15 @@ pub fn save_theme(
     Ok(id)
 }
 
+/// Saves changes to the built-in theme `id` as `_<id>.css`, replacing earlier changes.
+#[tauri::command]
+pub fn save_override(app: AppHandle, id: String, css: String) -> Result<(), String> {
+    if css.len() as u64 > MAX_BYTES {
+        return Err("That theme is larger than 2 MB.".into());
+    }
+    write(&app, &format!("_{}", slug(&id)), &css)
+}
+
 #[tauri::command]
 pub fn read_theme(app: AppHandle, name: String) -> Result<String, String> {
     if !is_slug(&name) {
@@ -194,14 +207,31 @@ mod tests {
         assert_eq!(slug("../../etc/passwd"), "etc-passwd");
         assert_eq!(slug("✠✠✠"), "theme");
         assert_eq!(slug(&"a".repeat(60)).len(), 40);
-        for s in ["vespertine", "my-theme-dark-v2", "etc-passwd", "theme"] {
+        for s in [
+            "vespertine",
+            "my-theme-dark-v2",
+            "etc-passwd",
+            "theme",
+            "_default",
+        ] {
             assert!(is_slug(s));
         }
     }
 
     #[test]
     fn rejects_names_that_could_leave_the_folder() {
-        for bad in ["", "../x", "a/b", "A", "x.css", "a b", &"a".repeat(41)] {
+        for bad in [
+            "",
+            "_",
+            "__x",
+            "_../x",
+            "../x",
+            "a/b",
+            "A",
+            "x.css",
+            "a b",
+            &"a".repeat(41),
+        ] {
             assert!(!is_slug(bad), "{bad}");
         }
     }
