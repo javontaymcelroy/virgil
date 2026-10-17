@@ -221,7 +221,8 @@ kbd { font: 500 var(--text-xs)/1 var(--font-mono); border: var(--border-width) s
 .builder-grad[hidden] { display: none; }
 .builder-name { flex: 1; min-width: 0; color: var(--text); font: var(--text-md)/1.3 var(--font-ui); }
 .builder-name small { display: block; color: var(--text-muted); font-size: var(--text-sm); }
-.builder-grad > span { color: var(--text-muted); font: var(--text-sm)/1 var(--font-ui); }
+.grad-preview { flex: none; width: 28px; height: 20px; border: var(--border-width) solid var(--border-strong); border-radius: calc(var(--radius-sm) / 2); }
+.builder-grad > span:not(.grad-preview) { color: var(--text-muted); font: var(--text-sm)/1 var(--font-ui); }
 .builder-grad input[type="range"] { flex: 1; }
 .builder-row output, .builder-grad output { min-width: 4ch; text-align: right; color: var(--text-muted); font: var(--text-sm)/1 var(--font-ui); font-variant-numeric: tabular-nums; }
 .builder-row .select { width: 170px; flex: none; }

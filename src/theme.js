@@ -43,16 +43,16 @@ const FONTS = {
 };
 const FIELDS = [
   "Colors",
-  { key: "--bg", label: "Background", type: "color", fill: "--bg-fill" },
-  { key: "--surface", label: "Panels", type: "color", fill: "--surface-fill" },
-  { key: "--text", label: "Text", type: "color", clip: ".brand, .word, .panel h2, .theme-editor h3, .setting .val, .record .num" },
-  { key: "--text-muted", label: "Secondary text", type: "color", clip: ".label, .hint, .keys, .drawer-note, .panel > p, .theme-row small" },
-  { key: "--pivot", label: "Focus letter", type: "color", clip: ".word .p" },
+  { key: "--bg", label: "Background", type: "color", fill: "--bg-fill", sample: "body" },
+  { key: "--surface", label: "Panels", type: "color", fill: "--surface-fill", sample: ".setting" },
+  { key: "--text", label: "Text", type: "color", clip: ".brand, .word, .panel h2, .theme-editor h3, .setting .val, .record .num", sample: ".brand" },
+  { key: "--text-muted", label: "Secondary text", type: "color", clip: ".label, .hint, .keys, .drawer-note, .panel > p, .theme-row small", sample: ".label" },
+  { key: "--pivot", label: "Focus letter", type: "color", clip: ".word .p", sample: ".word .p" },
   "Buttons",
-  { key: "--accent", label: "Primary", hint: "Buttons and switches", type: "color", fill: "--primary-fill", hover: "--primary-fill-hover" },
-  { key: "--on-accent", label: "Primary label", type: "color", clip: ".btn--primary, .btn--primary:hover", under: "var(--primary-fill)" },
-  { key: "--button", label: "Secondary", type: "color", fill: "--button-fill" },
-  { key: "--button-text", label: "Secondary label", type: "color", clip: ".btn:not(.btn--primary, .btn--ghost)", under: "var(--button-fill)" },
+  { key: "--accent", label: "Primary", hint: "Buttons and switches", type: "color", fill: "--primary-fill", hover: "--primary-fill-hover", sample: ".btn--primary" },
+  { key: "--on-accent", label: "Primary label", type: "color", clip: ".btn--primary, .btn--primary:hover", under: "var(--primary-fill)", sample: ".btn--primary" },
+  { key: "--button", label: "Secondary", type: "color", fill: "--button-fill", sample: ".btn:not(.btn--primary, .btn--ghost)" },
+  { key: "--button-text", label: "Secondary label", type: "color", clip: ".btn:not(.btn--primary, .btn--ghost)", under: "var(--button-fill)", sample: ".btn:not(.btn--primary, .btn--ghost)" },
   "Fonts",
   { key: "--font-ui", label: "Interface", type: "font" },
   { key: "--font-reading", label: "Reading", type: "font" },
@@ -264,7 +264,7 @@ function openBuilder(slug, css, builtinName) {
     if (f.unit != null) input.dataset.unit = f.unit;
     if (out) { row.appendChild(out); item.appendChild(input) }   // a size: value on the right, slider below
     else if (f.type === "color") {
-      const grad = gradientRow(f, saved[gradKey(f)]);
+      const grad = gradientRow(f, saved[gradKey(f)], themeGradient(f));
       row.append(fillSwitch(f, grad), input);
       item.appendChild(grad);
     } else row.appendChild(input);
@@ -289,17 +289,37 @@ function openBuilder(slug, css, builtinName) {
 // (`under`) when they have one. The color itself stays solid for borders, mixes and the rest.
 const gradKey = f => f.fill || `--grad${f.key.slice(1)}`;
 
-// The second line of a color item, shown for a gradient: angle, and the color it ends on
-// (in the same column as the color it starts from). Hidden means solid.
-function gradientRow(f, saved) {
-  const [, angle = "180", end = "#000000"] = /linear-gradient\((\d+)deg,\s*#\w+,\s*(#\w+)\)/.exec(saved || "") || [];
-  const row = document.createElement("div"); row.className = "builder-grad"; row.dataset.gradient = f.key; row.hidden = !saved;
+// A gradient the theme draws with its own rules (Vespertine's steel buttons and wordmark), read
+// off an element that shows it: the background of a fill, or the text-clipped layer of a text
+// color. The builder keeps it as it is until you change it.
+function themeGradient(f) {
+  const el = document.querySelector(f.sample);
+  if (!el) return null;
+  const s = getComputedStyle(el);
+  if (f.clip && !/text/.test(s.webkitBackgroundClip || s.backgroundClip)) return null;
+  const image = s.backgroundImage, at = image.indexOf("gradient(");
+  if (at < 0) return null;
+  let depth = 0, i = image.indexOf("(", at);   // the first layer, up to its closing parenthesis
+  for (; i < image.length; i++) { if (image[i] === "(") depth++; else if (image[i] === ")" && !--depth) break }
+  return image.slice(image.lastIndexOf(" ", at) + 1, i + 1);
+}
+
+// The second line of a color item, shown for a gradient: a preview, the angle, and the color it
+// ends on (in the same column as the color it starts from). Hidden means solid.
+function gradientRow(f, saved, theirs) {
+  const source = saved || theirs || "";
+  const angle = /(\d+)deg/.exec(source)?.[1] ?? "180";
+  const stops = source.match(/#[0-9a-f]{3,8}\b|rgba?\([^)]*\)/gi) || [];
+  const end = stops.length ? hex(stops[stops.length - 1]) : "#000000";
+  const row = document.createElement("div"); row.className = "builder-grad"; row.dataset.gradient = f.key; row.hidden = !source;
+  if (!saved && theirs) row.dataset.theirs = theirs;   // the theme's own, kept until touched
+  const swatch = document.createElement("span"); swatch.className = "grad-preview"; swatch.setAttribute("aria-hidden", "true");
   const label = document.createElement("span"); label.textContent = "Angle";
   const turn = document.createElement("input"); turn.type = "range"; Object.assign(turn, { min: 0, max: 360, step: 15, value: angle });
   turn.setAttribute("aria-label", `${f.label}: gradient angle`);
   const out = document.createElement("output");
   const to = document.createElement("input"); to.type = "color"; to.value = end; to.setAttribute("aria-label", `${f.label}: gradient end color`);
-  row.append(label, turn, out, to);
+  row.append(swatch, label, turn, out, to);
   return row;
 }
 
@@ -311,7 +331,8 @@ function fillSwitch(f, grad) {
     const b = document.createElement("button");
     b.type = "button"; b.textContent = text; b.setAttribute("aria-pressed", grad.hidden !== gradient);
     b.addEventListener("click", () => {
-      grad.hidden = !gradient;
+      if (grad.hidden === !gradient) return;
+      grad.hidden = !gradient; grad.dataset.touched = "";
       for (const other of seg.children) other.setAttribute("aria-pressed", other === b);
       preview();
     });
@@ -336,11 +357,23 @@ function builderCss() {
     const turn = g.querySelector("[type=range]"), to = g.querySelector("[type=color]");
     g.querySelector("output").textContent = `${turn.value}°`;
     turn.style.setProperty("--fill", `${turn.value / 3.6}%`);
-    if (g.hidden) continue;
     const f = FIELDS.find(f => f.key === g.dataset.gradient), key = gradKey(f);
     const from = g.closest(".builder-item").querySelector("[data-key]").value;
+    const theirs = g.dataset.touched == null && g.dataset.theirs;
+    const fill = theirs || `linear-gradient(${turn.value}deg, ${from}, ${to.value})`;
+    g.querySelector(".grad-preview").style.background = fill;
+    if (g.hidden) {
+      // Solid in place of the theme's own gradient: say so, or the theme's rules keep drawing it.
+      if (onlyChanged && g.dataset.theirs) {
+        changed.add(key);
+        if (f.fill) lines.push(`${key}: var(${f.key});`);
+        else textRules.push(`${f.clip} {\n  background: ${f.under || "none"}; -webkit-background-clip: border-box; background-clip: border-box; color: var(${f.key});\n}\n`);
+      }
+      continue;
+    }
+    if (theirs && onlyChanged) continue;   // unchanged: the theme already draws it
     changed.add(key);
-    lines.push(`${key}: linear-gradient(${turn.value}deg, ${from}, ${to.value});`);
+    lines.push(`${key}: ${fill};`);
     if (f.hover) lines.push(`${f.hover}: var(${key});`);
     if (f.clip) {
       const layers = f.under ? [`var(${key}), ${f.under}`, "text, border-box"] : [`var(${key})`, "text"];
@@ -457,7 +490,12 @@ export function initTheme() {
     $("customTheme").addEventListener("click", () => openEditor(null));
     for (const id of ["cancelTheme", "cancelBuilder"]) $(id).addEventListener("click", () => { closeEditor(); setThemeStatus("") });
     $("themeEditor").addEventListener("submit", save);
-    $("builderFields").addEventListener("input", preview);
+    $("builderFields").addEventListener("input", e => {
+      // Changing a color or its gradient replaces a theme's own gradient with the builder's.
+      const grad = e.target.closest(".builder-item")?.querySelector(".builder-grad");
+      if (grad && e.target.type === "color" || e.target.closest(".builder-grad")) grad.dataset.touched = "";
+      preview();
+    });
     $("themeBuilder").addEventListener("submit", e => {
       e.preventDefault();
       if (editingBuiltin) saveBuiltin(); else persist($("builderName").value.trim(), builderCss());
