@@ -2,7 +2,7 @@
 
 An open-source RSVP speed reader for macOS. Virgil shows a text one word at a time in a fixed spot, with the letter your eye should land on marked in color, so you read without moving your eyes across a page.
 
-- **Paste text** or **open a file**: `.txt`, `.md`, `.pdf` or `.epub` (or drop one on the window). Files are converted on your Mac and never uploaded.
+- **Paste text** or **open a file** from the Add a text side panel (⌘T): `.txt`, `.md`, `.pdf` or `.epub` (or drop one on the window). Files are converted on your Mac and never uploaded.
 - Pace from 100 to 1000 words per minute, one to three words per flash, pauses at punctuation and paragraph breaks, and an ease-in at the start.
 - Pausing shows the surrounding passage. Virgil remembers the last text and where you stopped, plus a short history of your sessions.
 - Native and lightweight: built with [Tauri](https://tauri.app).
@@ -25,6 +25,9 @@ Coming next: read-aloud with word-synced voices (macOS system voices, a local Ko
 | ← → | Previous / next sentence |
 | ↑ ↓ | Pace ±25 wpm |
 | ⌘O | Open a file |
+| ⌘T | Show or hide the Add a text panel |
+| ⌘, | Show or hide Settings |
+| Esc | Close the open panel |
 | ⌘V | Paste anywhere outside a text field to read the clipboard |
 
 ## Build from source
@@ -43,7 +46,15 @@ Tests: `npm test` (reader engine) and `cargo test` in `src-tauri/` (file import)
 
 ## Themes
 
-Every color, font and size comes from CSS custom properties in [`themes/default/theme.css`](themes/default/theme.css); the app's stylesheet hard-codes none of them. To use your own look, create `themes/private/<name>/theme.css`. It loads on top of the default, so it only needs the properties it changes, and it can add its own rules (and `@import` web fonts). `themes/private/` is gitignored: your theme is in your local builds, used automatically, and switchable under **Settings → Theme**, but it is never committed or included in public releases.
+Every color, font and size comes from CSS custom properties in [`themes/default/theme.css`](themes/default/theme.css); the app's stylesheet hard-codes none of them. To use your own look, create `themes/private/<name>/theme.css`. It loads on top of the default, so it only needs the properties it changes, and it can add its own rules (and `@import` web fonts). `themes/private/` is gitignored: your theme is in your local builds, used automatically, and switched on and off under **Settings → Themes**, but it is never committed or included in public releases.
+
+You can also make themes without rebuilding, under **Settings → Themes**:
+
+- **New theme** builds one with color pickers, font menus and size sliders, previewing it live as you change them.
+- **Custom theme** takes CSS you write or paste.
+- **Add from file…** takes any `.css` file.
+
+They are saved in Virgil's app data on your Mac (`~/Library/Application Support/io.github.javontaymcelroy.virgil/themes/`) and listed with a switch, **Edit** (renaming included) and **Delete**.
 
 ## Releasing
 

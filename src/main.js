@@ -3,8 +3,10 @@ import { createReader } from "./reader/reader.js";
 import { wireImport, setStatus } from "./import.js";
 import { SAMPLE } from "./sample.js";
 import { store } from "./store.js";
+import { wirePanel } from "./panel.js";
 
 initTheme();
+wirePanel();
 const reader = createReader();
 
 // Files and pasted text are kept so they reopen where you left off.

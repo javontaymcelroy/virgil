@@ -9,12 +9,19 @@
   <script type="module" src="./main.js"></script>
 </head>
 <body>
+<!-- The window has no title bar: this strip is where you drag it, and it clears the traffic lights. -->
+<div class="titlebar" data-tauri-drag-region></div>
+<div class="app">
 <div class="wrap">
   <header class="masthead">
     <h1 class="brand">Virgil</h1>
     <div class="titles">
       <span class="doc-title" id="docTitle">Opening…</span>
       <span class="source" id="source" hidden></span>
+    </div>
+    <div class="masthead-actions">
+      <button class="btn btn--sm panel-toggle" type="button" aria-expanded="false" aria-controls="textPanel" title="Add a text (⌘T)">Add text</button>
+      <button class="btn btn--sm panel-toggle" type="button" aria-expanded="false" aria-controls="settingsPanel" title="Settings (⌘,)">Settings</button>
     </div>
   </header>
 
@@ -64,25 +71,8 @@
         <label class="choice"><input type="checkbox" id="optPunct" checked> Rest at punctuation</label>
         <label class="choice"><input type="checkbox" id="optRamp" checked> Ease into pace</label>
       </div>
-      <div class="setting" id="themeSetting" hidden>
-        <span class="label">Theme</span>
-        <select class="select" id="theme" aria-label="Theme"></select>
-      </div>
     </div>
-    <p class="keys"><kbd>Space</kbd> read · <kbd>←</kbd><kbd>→</kbd> sentence · <kbd>↑</kbd><kbd>↓</kbd> pace · <kbd>⌘O</kbd> open</p>
-  </section>
-
-  <section class="card panel" aria-labelledby="textH">
-    <h2 id="textH">Add a text</h2>
-    <p>Paste anything, open a .txt, .md, .pdf or .epub file, or drop one on the window. Files are read on your Mac and never uploaded.</p>
-    <label class="label" for="input">Text to read</label>
-    <textarea id="input" class="textarea" placeholder="Paste text here…"></textarea>
-    <div class="row">
-      <button class="btn" id="useText" type="button">Read this text</button>
-      <button class="btn" id="open" type="button">Open file…</button>
-      <button class="btn btn--ghost" id="sample" type="button">Restore sample</button>
-    </div>
-    <span class="status" id="status" role="status"></span>
+    <p class="keys"><kbd>Space</kbd> read · <kbd>←</kbd><kbd>→</kbd> sentence · <kbd>↑</kbd><kbd>↓</kbd> pace · <kbd>⌘O</kbd> open · <kbd>⌘T</kbd> add text · <kbd>⌘,</kbd> settings</p>
   </section>
 
   <section class="card panel" aria-labelledby="recH">
@@ -97,6 +87,67 @@
   </section>
 
   <p class="footnote">Comprehension tends to slip as pace climbs, and above roughly 400 wpm most readers stop sounding words out in their head. Pause often; the passage appears beneath the reader whenever you stop.</p>
+
+</div>
+
+<aside class="drawer" id="textPanel" aria-labelledby="textH" inert>
+  <div class="drawer-inner panel">
+    <div class="drawer-head">
+      <h2 id="textH">Add a text</h2>
+      <button class="drawer-close" type="button" aria-label="Close panel" title="Close (Esc)">×</button>
+    </div>
+    <p>Paste anything, open a .txt, .md, .pdf or .epub file, or drop one on the window. Files are read on your Mac and never uploaded.</p>
+    <label class="label" for="input">Text to read</label>
+    <textarea id="input" class="textarea" placeholder="Paste text here…"></textarea>
+    <div class="row">
+      <button class="btn" id="useText" type="button">Read this text</button>
+      <button class="btn" id="open" type="button">Open file…</button>
+      <button class="btn btn--ghost" id="sample" type="button">Restore sample</button>
+    </div>
+    <span class="status" id="status" role="status"></span>
+  </div>
+</aside>
+
+<aside class="drawer" id="settingsPanel" aria-labelledby="settingsH" inert>
+  <div class="drawer-inner panel">
+    <div class="drawer-head">
+      <h2 id="settingsH">Settings</h2>
+      <button class="drawer-close" type="button" aria-label="Close panel" title="Close (Esc)">×</button>
+    </div>
+    <section class="drawer-section" aria-labelledby="themesH">
+      <h3 class="label" id="themesH">Themes</h3>
+      <div class="theme-list" id="themeList" role="group" aria-labelledby="themesH"></div>
+      <div class="row">
+        <button class="btn btn--sm" id="newTheme" type="button">New theme</button>
+        <button class="btn btn--sm" id="customTheme" type="button">Custom theme</button>
+        <button class="btn btn--sm" id="addTheme" type="button">Add from file…</button>
+      </div>
+      <form class="theme-editor" id="themeBuilder" hidden>
+        <h3 class="label" id="themeBuilderH">New theme</h3>
+        <label class="label" for="builderName">Name</label>
+        <input class="input" id="builderName" type="text" maxlength="40" autocomplete="off" spellcheck="false" placeholder="Midnight">
+        <div class="builder-fields" id="builderFields"></div>
+        <div class="row">
+          <button class="btn btn--primary" type="submit">Save theme</button>
+          <button class="btn btn--ghost" id="cancelBuilder" type="button">Cancel</button>
+        </div>
+      </form>
+      <form class="theme-editor" id="themeEditor" hidden>
+        <h3 class="label" id="themeEditorH">Custom theme</h3>
+        <label class="label" for="themeName">Name</label>
+        <input class="input" id="themeName" type="text" maxlength="40" autocomplete="off" spellcheck="false" placeholder="Midnight">
+        <label class="label" for="themeCss">CSS</label>
+        <textarea class="textarea code" id="themeCss" spellcheck="false" placeholder=":root {&#10;  --bg: #101418;&#10;  --text: #e8e6e3;&#10;  --pivot: #ff8a3d;&#10;}"></textarea>
+        <div class="row">
+          <button class="btn btn--primary" type="submit">Save theme</button>
+          <button class="btn btn--ghost" id="cancelTheme" type="button">Cancel</button>
+        </div>
+      </form>
+      <span class="status" id="themeStatus" role="status"></span>
+      <p class="drawer-note">A theme is CSS that sets Virgil's custom properties (see themes/default/theme.css) and may add its own rules. Set only what you want to change; the rest comes from the default. New theme builds one with pickers and previews it live; Custom theme takes pasted CSS. Your themes are saved in Virgil's app data on this Mac.</p>
+    </section>
+  </div>
+</aside>
 </div>
 </body>
 </html>

@@ -5,11 +5,14 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { titleFor } from "./reader/text.js";
+import { openPanel } from "./panel.js";
 
 const $ = id => document.getElementById(id);
 
+/** Errors open the side panel so they're never shown in a closed one. */
 export function setStatus(message, kind) {
   const s = $("status"); s.textContent = message; s.className = "status" + (kind ? " " + kind : "");
+  if (kind === "err") openPanel();
 }
 
 /** `show(doc)` puts a document on the reader and returns false if it has no words. */

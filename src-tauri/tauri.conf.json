@@ -14,14 +14,16 @@
       {
         "label": "main",
         "title": "Virgil",
-        "width": 920,
+        "width": 1240,
         "height": 900,
         "minWidth": 560,
-        "minHeight": 640
+        "minHeight": 640,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true
       }
     ],
     "security": {
-      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data:; connect-src ipc: http://ipc.localhost"
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com vtheme: http://vtheme.localhost; font-src 'self' data: https://fonts.gstatic.com vtheme: http://vtheme.localhost; img-src 'self' data:; connect-src ipc: http://ipc.localhost"
     }
   },
   "bundle": {
