@@ -6,6 +6,8 @@
      ("Custom theme"), or chosen with "Add from file…";
      all saved by Rust in the app-data folder and served as vtheme://localhost/<name>.css. They can
      be edited, renamed and deleted from the list.
+   Built-in themes (Default and the private ones) can be edited too: the changes are saved as
+   _<theme>.css, layered on top of the original, and Reset deletes them.
    At most one is on; turning it off returns to the default. Until you choose, the first
    built-in private theme is on. */
 
@@ -20,7 +22,10 @@ const $ = id => document.getElementById(id);
 const ready = () => document.documentElement.setAttribute("data-ready", "");
 const words = s => s.split("-").filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(" ");
 
-let current = "default", added = [], editing = null;   // editing: id of the theme being edited, "" for a new one
+let current = "default", added = [], edited = [], editing = null;   // editing: id of the theme being edited, "" for a new one
+let editingBuiltin = null;                                          // or the built-in theme whose changes are being edited
+let onlyChanged = false;   // builder: write only the values changed from the original (built-in edits)
+const builtin = id => id === "default" || PRIVATE.includes(id);
 
 // The builder ("New theme"): a few pickers that become CSS custom properties. Everything else
 // (borders, hover and muted shades, the smaller and larger text sizes) is derived from them.
@@ -38,15 +43,20 @@ const FONTS = {
 };
 const FIELDS = [
   "Colors",
-  { key: "--bg", label: "Background", type: "color" },
-  { key: "--surface", label: "Panels", type: "color" },
-  { key: "--text", label: "Text", type: "color" },
-  { key: "--text-muted", label: "Secondary text", type: "color" },
-  { key: "--accent", label: "Buttons and switches", type: "color" },
-  { key: "--pivot", label: "Focus letter", type: "color" },
+  { key: "--bg", label: "Background", type: "color", fill: "--bg-fill" },
+  { key: "--surface", label: "Panels", type: "color", fill: "--surface-fill" },
+  { key: "--text", label: "Text", type: "color", clip: ".brand, .word, .panel h2, .theme-editor h3, .setting .val, .record .num" },
+  { key: "--text-muted", label: "Secondary text", type: "color", clip: ".label, .hint, .keys, .drawer-note, .panel > p, .theme-row small" },
+  { key: "--pivot", label: "Focus letter", type: "color", clip: ".word .p" },
+  "Buttons",
+  { key: "--accent", label: "Primary buttons and switches", type: "color", fill: "--primary-fill", hover: "--primary-fill-hover" },
+  { key: "--on-accent", label: "Primary button text", type: "color", clip: ".btn--primary, .btn--primary:hover", under: "var(--primary-fill)" },
+  { key: "--button", label: "Secondary buttons", type: "color", fill: "--button-fill" },
+  { key: "--button-text", label: "Secondary button text", type: "color", clip: ".btn:not(.btn--primary, .btn--ghost)", under: "var(--button-fill)" },
   "Fonts",
   { key: "--font-ui", label: "Interface", type: "font" },
   { key: "--font-reading", label: "Reading", type: "font" },
+  { key: "--font-word", label: "Flashed word", type: "font" },
   "Sizes",
   { key: "--word-size", label: "Word size", min: 32, max: 120, step: 2, unit: "px", def: 56 },
   { key: "--word-weight", label: "Word weight", min: 300, max: 800, step: 100, unit: "", def: 500 },
@@ -54,7 +64,6 @@ const FIELDS = [
   { key: "--radius", label: "Corner roundness", min: 0, max: 24, step: 1, unit: "px", def: 12 },
 ];
 const DERIVED = `
-  --font-word: var(--font-reading);
   --accent-hover: color-mix(in srgb, var(--accent) 88%, var(--text));
   --track-fill: var(--accent);
   --thumb: var(--accent);
@@ -77,22 +86,29 @@ function href(id) {
   return null;
 }
 
+// Resolves once the theme's stylesheets have loaded (or failed to).
 function apply(id) {
-  document.getElementById("theme-override")?.remove();
+  for (const old of document.querySelectorAll("#theme-override, #theme-edits")) old.remove();
+  const loads = [];
+  const add = (linkId, url, onerror) => loads.push(new Promise(done => {
+    const link = document.createElement("link");
+    link.id = linkId; link.rel = "stylesheet"; link.href = url;
+    link.onload = done;
+    link.onerror = () => { onerror?.(); done() };
+    document.head.appendChild(link);
+  }));
   const url = href(id);
-  if (!url) { ready(); return }
-  const link = document.createElement("link");
-  link.id = "theme-override"; link.rel = "stylesheet"; link.href = url;
-  link.onload = ready;
-  link.onerror = () => { ready(); if (current === id) choose("default") };   // e.g. an added theme was deleted
-  document.head.appendChild(link);
+  if (url) add("theme-override", url, () => { if (current === id) choose("default") });   // e.g. an added theme was deleted
+  if (edited.includes(id)) add("theme-edits", `${convertFileSrc(`_${id}.css`, "vtheme")}?v=${Date.now()}`);
+  return Promise.all(loads).then(ready);
 }
 
 function choose(id) {
   current = id;
   store.set("theme", id);
-  apply(id);
+  const loaded = apply(id);
   for (const row of document.querySelectorAll(".theme-row")) row.setAttribute("aria-checked", row.dataset.theme === id);
+  return loaded;
 }
 
 function setThemeStatus(message, kind) {
@@ -112,7 +128,7 @@ function render() {
     row.type = "button"; row.className = "theme-row"; row.setAttribute("role", "switch"); row.dataset.theme = id;
     row.setAttribute("aria-checked", id === current);
     const text = document.createElement("span"); text.textContent = name;
-    const sub = document.createElement("small"); sub.textContent = note; text.appendChild(sub);
+    const sub = document.createElement("small"); sub.textContent = edited.includes(id) ? `${note} · edited` : note; text.appendChild(sub);
     const sw = document.createElement("span"); sw.className = "switch"; sw.setAttribute("aria-hidden", "true");
     row.append(text, sw);
     // Turning a theme on turns the others off; turning the current one off returns to the default.
@@ -120,7 +136,10 @@ function render() {
     item.appendChild(row);
     if (id.startsWith(ADDED)) {
       const slug = id.slice(ADDED.length);
-      item.append(action("Edit", `Edit ${name}`, () => openEditor(slug)), deleteButton(slug, name));
+      item.append(action("Edit", `Edit ${name}`, () => openEditor(slug)), confirmButton("Delete", `Delete ${name}`, () => remove(slug, name)));
+    } else if (isTauri()) {
+      item.append(action("Edit", `Edit ${name}`, () => editBuiltin(id, name)));
+      if (edited.includes(id)) item.append(confirmButton("Reset", `Reset ${name} to its original look`, () => reset(id, name)));
     }
     list.appendChild(item);
   }
@@ -133,19 +152,29 @@ function action(text, label, onClick) {
   return b;
 }
 
-// Delete takes two clicks: the first turns the button into "Delete?" for a few seconds.
-function deleteButton(slug, name) {
-  const b = action("Delete", `Delete ${name}`, () => {
+// Delete and Reset take two clicks: the first turns the button into "Delete?" for a few seconds.
+function confirmButton(text, label, onConfirm) {
+  const b = action(text, label, () => {
     if (!b.classList.contains("confirm")) {
-      b.classList.add("confirm"); b.textContent = "Delete?";
-      setTimeout(() => { b.classList.remove("confirm"); b.textContent = "Delete" }, 3000);
+      b.classList.add("confirm"); b.textContent = `${text}?`;
+      setTimeout(() => { b.classList.remove("confirm"); b.textContent = text }, 3000);
       return;
     }
-    remove(slug, name);
+    onConfirm();
   });
   b.classList.add("danger");
   return b;
 }
+
+const BUTTON_RULES = {
+  primary: `.btn--primary, .btn--primary:hover, .btn--primary:active {
+  background: var(--primary-fill); border-color: var(--accent); color: var(--on-accent); box-shadow: none; text-shadow: none;
+}
+.btn--primary:hover { background: var(--primary-fill-hover); border-color: var(--accent-hover); }
+`,
+  secondary: `.btn:not(.btn--primary, .btn--ghost) { background: var(--button-fill); color: var(--button-text); }
+`,
+};
 
 // Edit opens a theme where it was made: the builder for builder themes, the CSS editor otherwise.
 async function openEditor(slug, builder = false) {
@@ -164,16 +193,32 @@ async function openEditor(slug, builder = false) {
   (slug ? $("themeCss") : $("themeName")).focus();
 }
 
+// Editing a built-in theme switches to it and opens the builder on its current look; the
+// changes are saved on top of the original, so its own rules and fonts stay.
+async function editBuiltin(id, name) {
+  setThemeStatus("");
+  let css = "";
+  if (edited.includes(id)) {
+    try { css = await invoke("read_theme", { name: `_${id}` }) } catch (err) { setThemeStatus(String(err), "err"); return }
+  }
+  closeEditor();
+  if (current !== id) await choose(id);
+  editingBuiltin = id;
+  openBuilder(null, css, name);
+}
+
 function closeEditor() {
-  editing = null;
+  editing = editingBuiltin = null;
   $("themeEditor").hidden = $("themeBuilder").hidden = true;
   document.getElementById("theme-draft")?.remove();
-  const link = document.getElementById("theme-override");
-  if (link?.sheet) link.sheet.disabled = false;
+  for (const link of document.querySelectorAll("#theme-override, #theme-edits")) if (link.sheet) link.sheet.disabled = false;
 }
 
 // Starts from the values in the theme being edited, or else from the theme that is on now.
-function openBuilder(slug, css) {
+function openBuilder(slug, css, builtinName) {
+  // For a built-in theme, start from the original so unchanged values aren't written.
+  onlyChanged = !!builtinName;
+  if (onlyChanged) { const e = document.getElementById("theme-edits"); if (e?.sheet) e.sheet.disabled = true }
   const now = getComputedStyle(document.documentElement), probe = document.createElement("i");
   document.body.appendChild(probe);
   const saved = {};
@@ -184,50 +229,110 @@ function openBuilder(slug, css) {
     const row = document.createElement("label"); row.className = "builder-field";
     const name = document.createElement("span"); name.textContent = f.label;
     let input, out;
+    let start, value;
     if (f.type === "color") {
-      probe.style.color = saved[f.key] || `var(${f.key})`;
-      input = document.createElement("input"); input.type = "color"; input.value = hex(getComputedStyle(probe).color);
+      const resolve = c => { probe.style.color = c; return hex(getComputedStyle(probe).color) };
+      start = resolve(`var(${f.key})`); value = saved[f.key] ? resolve(saved[f.key]) : start;
+      input = document.createElement("input"); input.type = "color";
     } else if (f.type === "font") {
-      const value = saved[f.key] || now.getPropertyValue(f.key).trim();
+      start = now.getPropertyValue(f.key).trim(); value = saved[f.key] || start;
       input = document.createElement("select"); input.className = "select";
       const options = Object.entries(FONTS);
-      if (!options.some(([, v]) => v === value)) options.unshift(["Current", value]);
-      for (const [label, v] of options) input.add(new Option(label, v, false, v === value));
+      if (!options.some(([, v]) => v === start)) options.unshift(["Current", start]);
+      for (const [label, v] of options) input.add(new Option(label, v));
     } else {
-      const n = parseFloat(saved[f.key] ?? now.getPropertyValue(f.key));
+      const n = parseFloat(now.getPropertyValue(f.key));
+      start = Number.isFinite(n) ? n : f.def; value = parseFloat(saved[f.key]) || start;
       input = document.createElement("input"); input.type = "range";
-      Object.assign(input, { min: f.min, max: f.max, step: f.step, value: Number.isFinite(n) ? n : f.def });
+      Object.assign(input, { min: f.min, max: f.max, step: f.step });
       out = document.createElement("output");
     }
+    input.value = start; input.dataset.start = input.value;   // normalized the way the input reports it
+    input.value = value;
     input.dataset.key = f.key;
     if (f.unit != null) input.dataset.unit = f.unit;
     row.append(name, out || input);
     if (out) row.appendChild(input);
     box.appendChild(row);
+    if (f.type === "color") box.appendChild(gradientRow(f, saved[gradKey(f)]));
   }
   probe.remove();
-  $("themeBuilderH").textContent = slug ? `Edit ${words(slug)}` : "New theme";
+  $("themeBuilderH").textContent = builtinName ? `Edit ${builtinName}` : slug ? `Edit ${words(slug)}` : "New theme";
   $("builderName").value = slug ? words(slug) : "";
+  $("builderName").hidden = $("builderName").labels[0].hidden = !!builtinName;
   $("themeBuilder").hidden = false;
-  // Preview the draft alone, as it will look once saved, with the current theme set aside.
-  const link = document.getElementById("theme-override");
-  if (link?.sheet) link.sheet.disabled = true;
+  // Preview the draft as it will look once saved: alone, with the current theme set aside, or
+  // for a built-in theme, on top of the original in place of its earlier changes.
+  const aside = builtinName ? "#theme-edits" : "#theme-override, #theme-edits";
+  for (const link of document.querySelectorAll(aside)) if (link.sheet) link.sheet.disabled = true;
   const draft = document.createElement("style"); draft.id = "theme-draft"; document.head.appendChild(draft);
   preview();
-  $("builderName").focus();
+  (builtinName ? box.querySelector("input") : $("builderName")).focus();
+}
+
+// "Gradient" under each color: a linear gradient from that color to a second one, at an angle.
+// A background color's fill takes it (--bg-fill for --bg, say); a text color's gradient is
+// clipped to the text of the elements in its `clip` selector, over their own background
+// (`under`) when they have one. The color itself stays solid for borders, mixes and the rest.
+const gradKey = f => f.fill || `--grad${f.key.slice(1)}`;
+
+function gradientRow(f, saved) {
+  const [, angle = "180", end = "#000000"] = /linear-gradient\((\d+)deg,\s*#\w+,\s*(#\w+)\)/.exec(saved || "") || [];
+  const row = document.createElement("div"); row.className = "builder-grad"; row.dataset.gradient = f.key;
+  const toggle = document.createElement("label"), on = document.createElement("input");
+  on.type = "checkbox"; on.checked = !!saved; toggle.append(on, "Gradient");
+  const more = document.createElement("span"); more.hidden = !on.checked;
+  const to = document.createElement("input"); to.type = "color"; to.value = end; to.setAttribute("aria-label", `${f.label}: gradient end color`);
+  const turn = document.createElement("input"); turn.type = "range"; Object.assign(turn, { min: 0, max: 360, step: 15, value: angle });
+  turn.setAttribute("aria-label", `${f.label}: gradient angle`);
+  const out = document.createElement("output");
+  more.append(to, turn, out);
+  on.addEventListener("change", () => { more.hidden = !on.checked });
+  row.append(toggle, more);
+  return row;
 }
 
 function builderCss() {
-  const lines = [...$("builderFields").querySelectorAll("[data-key]")].map(i => {
+  const changed = new Set(), lines = [];
+  for (const i of $("builderFields").querySelectorAll("[data-key]")) {
     if (i.type === "range") {
       i.style.setProperty("--fill", `${(i.value - i.min) / (i.max - i.min) * 100}%`);
       i.previousElementSibling.textContent = i.value + i.dataset.unit;
     }
-    return `  ${i.dataset.key}: ${i.value}${i.dataset.unit || ""};`;
-  });
+    if (onlyChanged && i.value === i.dataset.start) continue;
+    changed.add(i.dataset.key);
+    lines.push(`${i.dataset.key}: ${i.value}${i.dataset.unit || ""};`);
+  }
+  // Derived values follow the values they're made from; for a built-in theme, only changed ones.
+  const textRules = [];
+  for (const g of $("builderFields").querySelectorAll("[data-gradient]")) {
+    const [on, to, turn] = g.querySelectorAll("input"), out = g.querySelector("output");
+    out.textContent = `${turn.value}°`;
+    turn.style.setProperty("--fill", `${turn.value / 3.6}%`);
+    if (!on.checked) continue;
+    const f = FIELDS.find(f => f.key === g.dataset.gradient), key = gradKey(f);
+    const from = g.previousElementSibling.querySelector("[data-key]").value;
+    changed.add(key);
+    lines.push(`${key}: linear-gradient(${turn.value}deg, ${from}, ${to.value});`);
+    if (f.hover) lines.push(`${f.hover}: var(${key});`);
+    if (f.clip) {
+      const layers = f.under ? [`var(${key}), ${f.under}`, "text, border-box"] : [`var(${key})`, "text"];
+      textRules.push(`${f.clip} {\n  background: ${layers[0]}; -webkit-background-clip: ${layers[1]}; background-clip: ${layers[1]}; color: transparent;\n}\n`);
+    }
+  }
+  const uses = k => !onlyChanged || changed.has(k);
   const get = k => $("builderFields").querySelector(`[data-key="${k}"]`).value;
-  return `${MARK}\n:root {\n  color-scheme: ${light(get("--bg")) ? "light" : "dark"};\n${lines.join("\n")}\n` +
-    `  --on-accent: ${light(get("--accent")) ? "#111111" : "#ffffff"};${DERIVED}\n}\n`;
+  if (uses("--bg")) lines.unshift(`color-scheme: ${light(get("--bg")) ? "light" : "dark"};`);
+  for (const line of DERIVED.trim().split("\n")) {
+    if ([...line.matchAll(/var\((--[\w-]+)\)/g)].some(([, k]) => uses(k))) lines.push(line.trim());
+  }
+  let css = `${MARK}\n:root {\n${lines.map(l => "  " + l).join("\n")}\n}\n`;
+  // A built-in theme may style its buttons with its own rules (Vespertine's steel, say), which
+  // the colors alone don't reach; changed button colors bring rules that apply them.
+  const any = (...keys) => keys.some(k => changed.has(k));
+  if (onlyChanged && any("--accent", "--on-accent", "--primary-fill")) css += BUTTON_RULES.primary;
+  if (onlyChanged && any("--button", "--button-text", "--button-fill")) css += BUTTON_RULES.secondary;
+  return css + textRules.join("");
 }
 
 function preview() { const d = document.getElementById("theme-draft"); if (d) d.textContent = builderCss() }
@@ -259,8 +364,32 @@ async function persist(name, css) {
   } catch (err) { setThemeStatus(String(err), "err") }
 }
 
+async function saveBuiltin() {
+  const id = editingBuiltin, name = $("themeBuilderH").textContent.replace(/^Edit /, "");
+  try {
+    await invoke("save_override", { id, css: builderCss() });
+    closeEditor();
+    await refresh();
+    choose(id);
+    setThemeStatus(`Saved your changes to ${name}.`, "ok");
+  } catch (err) { setThemeStatus(String(err), "err") }
+}
+
+async function reset(id, name) {
+  try {
+    await invoke("remove_theme", { name: `_${id}` });
+    if (editingBuiltin === id) closeEditor();
+    await refresh();
+    if (current === id) choose(id);
+    setThemeStatus(`Reset ${name} to its original look.`, "ok");
+  } catch (err) { setThemeStatus(String(err), "err") }
+}
+
 async function refresh() {
-  try { added = await invoke("list_themes") } catch { added = [] }
+  let names = [];
+  try { names = await invoke("list_themes") } catch { }
+  added = names.filter(n => !n.startsWith("_"));
+  edited = names.filter(n => n.startsWith("_")).map(n => n.slice(1));
   if (current.startsWith(ADDED) && !added.includes(current.slice(ADDED.length))) choose("default");
   render();
 }
@@ -294,14 +423,17 @@ export function initTheme() {
   setTimeout(ready, 1500); // never stay hidden if a theme is slow to load
   render();
   if (isTauri()) {
-    refresh();
+    refresh().then(() => { if (edited.includes(current)) apply(current) });
     $("addTheme").addEventListener("click", add);
     $("newTheme").addEventListener("click", () => openEditor(null, true));
     $("customTheme").addEventListener("click", () => openEditor(null));
     for (const id of ["cancelTheme", "cancelBuilder"]) $(id).addEventListener("click", () => { closeEditor(); setThemeStatus("") });
     $("themeEditor").addEventListener("submit", save);
     $("builderFields").addEventListener("input", preview);
-    $("themeBuilder").addEventListener("submit", e => { e.preventDefault(); persist($("builderName").value.trim(), builderCss()) });
+    $("themeBuilder").addEventListener("submit", e => {
+      e.preventDefault();
+      if (editingBuiltin) saveBuiltin(); else persist($("builderName").value.trim(), builderCss());
+    });
   } else {
     $("addTheme").hidden = $("newTheme").hidden = $("customTheme").hidden = true;
   }

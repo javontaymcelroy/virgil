@@ -61,6 +61,7 @@ fn main() {
             themes::list_themes,
             themes::add_theme,
             themes::save_theme,
+            themes::save_override,
             themes::read_theme,
             themes::remove_theme
         ])

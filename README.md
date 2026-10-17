@@ -50,11 +50,13 @@ Every color, font and size comes from CSS custom properties in [`themes/default/
 
 You can also make themes without rebuilding, under **Settings → Themes**:
 
-- **New theme** builds one with color pickers, font menus and size sliders, previewing it live as you change them.
+- **New theme** builds one with color pickers (each solid or a gradient), font menus and size sliders, previewing it live as you change them.
 - **Custom theme** takes CSS you write or paste.
 - **Add from file…** takes any `.css` file.
 
 They are saved in Virgil's app data on your Mac (`~/Library/Application Support/io.github.javontaymcelroy.virgil/themes/`) and listed with a switch, **Edit** (renaming included) and **Delete**.
+
+The built-in themes (Default and your private ones) have **Edit** too. It opens the builder on the theme's current look and saves only what you change, layered on top of the original, so the theme's own rules and fonts stay. **Reset** removes your changes.
 
 ## Releasing
 
