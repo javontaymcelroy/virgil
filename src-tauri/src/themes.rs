@@ -81,21 +81,67 @@ pub async fn add_theme(app: AppHandle) -> Result<Option<String>, String> {
             return Err("That theme is larger than 2 MB.".into());
         }
         let css = std::fs::read(&path).map_err(|e| format!("Couldn't read that file: {e}."))?;
-        if std::str::from_utf8(&css).is_err() {
-            return Err("That file isn't a text stylesheet.".into());
-        }
+        let css =
+            String::from_utf8(css).map_err(|_| "That file isn't a text stylesheet.".to_string())?;
         let name = slug(
             &path
                 .file_stem()
                 .map(|s| s.to_string_lossy().into_owned())
                 .unwrap_or_default(),
         );
-        std::fs::write(dir(&app)?.join(format!("{name}.css")), css)
-            .map_err(|e| format!("Couldn't save the theme: {e}."))?;
+        write(&app, &name, &css)?;
         Ok(Some(name))
     })
     .await
     .map_err(|e| e.to_string())?
+}
+
+fn write<R: Runtime>(app: &AppHandle<R>, name: &str, css: &str) -> Result<(), String> {
+    std::fs::write(dir(app)?.join(format!("{name}.css")), css)
+        .map_err(|e| format!("Couldn't save the theme: {e}."))
+}
+
+/// Saves CSS typed or pasted in Settings under `name` and returns the theme id. When editing,
+/// `replacing` is the theme's current id: saving under a new name renames it. A name already
+/// taken by a different theme is refused rather than overwritten.
+#[tauri::command]
+pub fn save_theme(
+    app: AppHandle,
+    name: String,
+    css: String,
+    replacing: Option<String>,
+) -> Result<String, String> {
+    if name.trim().is_empty() {
+        return Err("Give the theme a name.".into());
+    }
+    if css.trim().is_empty() {
+        return Err("Paste or write some CSS first.".into());
+    }
+    if css.len() as u64 > MAX_BYTES {
+        return Err("That theme is larger than 2 MB.".into());
+    }
+    let id = slug(&name);
+    let replacing = replacing.filter(|r| is_slug(r));
+    if replacing.as_deref() != Some(id.as_str()) && dir(&app)?.join(format!("{id}.css")).exists() {
+        return Err(format!(
+            "A theme called “{}” already exists. Choose another name.",
+            name.trim()
+        ));
+    }
+    write(&app, &id, &css)?;
+    if let Some(old) = replacing.filter(|old| *old != id) {
+        let _ = std::fs::remove_file(dir(&app)?.join(format!("{old}.css")));
+    }
+    Ok(id)
+}
+
+#[tauri::command]
+pub fn read_theme(app: AppHandle, name: String) -> Result<String, String> {
+    if !is_slug(&name) {
+        return Err("Unknown theme.".into());
+    }
+    std::fs::read_to_string(dir(&app)?.join(format!("{name}.css")))
+        .map_err(|e| format!("Couldn't open the theme: {e}."))
 }
 
 #[tauri::command]

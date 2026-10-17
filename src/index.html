@@ -9,6 +9,8 @@
   <script type="module" src="./main.js"></script>
 </head>
 <body>
+<!-- The window has no title bar: this strip is where you drag it, and it clears the traffic lights. -->
+<div class="titlebar" data-tauri-drag-region></div>
 <div class="app">
 <div class="wrap">
   <header class="masthead">
@@ -115,9 +117,34 @@
     <section class="drawer-section" aria-labelledby="themesH">
       <h3 class="label" id="themesH">Themes</h3>
       <div class="theme-list" id="themeList" role="group" aria-labelledby="themesH"></div>
-      <div class="row"><button class="btn btn--sm" id="addTheme" type="button">Add theme…</button></div>
+      <div class="row">
+        <button class="btn btn--sm" id="newTheme" type="button">New theme</button>
+        <button class="btn btn--sm" id="customTheme" type="button">Custom theme</button>
+        <button class="btn btn--sm" id="addTheme" type="button">Add from file…</button>
+      </div>
+      <form class="theme-editor" id="themeBuilder" hidden>
+        <h3 class="label" id="themeBuilderH">New theme</h3>
+        <label class="label" for="builderName">Name</label>
+        <input class="input" id="builderName" type="text" maxlength="40" autocomplete="off" spellcheck="false" placeholder="Midnight">
+        <div class="builder-fields" id="builderFields"></div>
+        <div class="row">
+          <button class="btn btn--primary" type="submit">Save theme</button>
+          <button class="btn btn--ghost" id="cancelBuilder" type="button">Cancel</button>
+        </div>
+      </form>
+      <form class="theme-editor" id="themeEditor" hidden>
+        <h3 class="label" id="themeEditorH">Custom theme</h3>
+        <label class="label" for="themeName">Name</label>
+        <input class="input" id="themeName" type="text" maxlength="40" autocomplete="off" spellcheck="false" placeholder="Midnight">
+        <label class="label" for="themeCss">CSS</label>
+        <textarea class="textarea code" id="themeCss" spellcheck="false" placeholder=":root {&#10;  --bg: #101418;&#10;  --text: #e8e6e3;&#10;  --pivot: #ff8a3d;&#10;}"></textarea>
+        <div class="row">
+          <button class="btn btn--primary" type="submit">Save theme</button>
+          <button class="btn btn--ghost" id="cancelTheme" type="button">Cancel</button>
+        </div>
+      </form>
       <span class="status" id="themeStatus" role="status"></span>
-      <p class="drawer-note">A theme is a .css file that sets Virgil's custom properties (see themes/default/theme.css) and may add its own rules. Added themes are copied into Virgil's app data on this Mac.</p>
+      <p class="drawer-note">A theme is CSS that sets Virgil's custom properties (see themes/default/theme.css) and may add its own rules. Set only what you want to change; the rest comes from the default. New theme builds one with pickers and previews it live; Custom theme takes pasted CSS. Your themes are saved in Virgil's app data on this Mac.</p>
     </section>
   </div>
 </aside>

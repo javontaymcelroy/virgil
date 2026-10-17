@@ -60,6 +60,8 @@ fn main() {
             open_document,
             themes::list_themes,
             themes::add_theme,
+            themes::save_theme,
+            themes::read_theme,
             themes::remove_theme
         ])
         .on_window_event(|window, event| {
