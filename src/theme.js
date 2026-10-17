@@ -49,10 +49,10 @@ const FIELDS = [
   { key: "--text-muted", label: "Secondary text", type: "color", clip: ".label, .hint, .keys, .drawer-note, .panel > p, .theme-row small" },
   { key: "--pivot", label: "Focus letter", type: "color", clip: ".word .p" },
   "Buttons",
-  { key: "--accent", label: "Primary buttons and switches", type: "color", fill: "--primary-fill", hover: "--primary-fill-hover" },
-  { key: "--on-accent", label: "Primary button text", type: "color", clip: ".btn--primary, .btn--primary:hover", under: "var(--primary-fill)" },
-  { key: "--button", label: "Secondary buttons", type: "color", fill: "--button-fill" },
-  { key: "--button-text", label: "Secondary button text", type: "color", clip: ".btn:not(.btn--primary, .btn--ghost)", under: "var(--button-fill)" },
+  { key: "--accent", label: "Primary", hint: "Buttons and switches", type: "color", fill: "--primary-fill", hover: "--primary-fill-hover" },
+  { key: "--on-accent", label: "Primary label", type: "color", clip: ".btn--primary, .btn--primary:hover", under: "var(--primary-fill)" },
+  { key: "--button", label: "Secondary", type: "color", fill: "--button-fill" },
+  { key: "--button-text", label: "Secondary label", type: "color", clip: ".btn:not(.btn--primary, .btn--ghost)", under: "var(--button-fill)" },
   "Fonts",
   { key: "--font-ui", label: "Interface", type: "font" },
   { key: "--font-reading", label: "Reading", type: "font" },
@@ -223,11 +223,22 @@ function openBuilder(slug, css, builtinName) {
   document.body.appendChild(probe);
   const saved = {};
   for (const [, k, v] of css.matchAll(/(--[\w-]+):\s*([^;]+);/g)) saved[k] = v.trim();
+  // Each group is a list like the theme list; each item is one value: its name and control on
+  // one line, and a color's gradient settings, or a size's slider, on the line below.
   const box = $("builderFields"); box.textContent = "";
+  let list;
   for (const f of FIELDS) {
-    if (typeof f === "string") { const h = document.createElement("h4"); h.className = "label"; h.textContent = f; box.appendChild(h); continue }
-    const row = document.createElement("label"); row.className = "builder-field";
-    const name = document.createElement("span"); name.textContent = f.label;
+    if (typeof f === "string") {
+      const h = document.createElement("h4"); h.className = "label"; h.textContent = f; h.id = `builder-${f.toLowerCase()}`;
+      list = document.createElement("div"); list.className = "builder-list"; list.setAttribute("role", "group"); list.setAttribute("aria-labelledby", h.id);
+      box.append(h, list);
+      continue;
+    }
+    const item = document.createElement("div"); item.className = "builder-item";
+    const row = document.createElement("div"); row.className = "builder-row";
+    const name = document.createElement("label"); name.className = "builder-name"; name.htmlFor = `builder${f.key}`; name.textContent = f.label;
+    if (f.hint) { const s = document.createElement("small"); s.textContent = f.hint; name.appendChild(s) }
+    row.appendChild(name); item.appendChild(row); list.appendChild(item);
     let input, out;
     let start, value;
     if (f.type === "color") {
@@ -249,12 +260,14 @@ function openBuilder(slug, css, builtinName) {
     }
     input.value = start; input.dataset.start = input.value;   // normalized the way the input reports it
     input.value = value;
-    input.dataset.key = f.key;
+    input.dataset.key = f.key; input.id = `builder${f.key}`;
     if (f.unit != null) input.dataset.unit = f.unit;
-    row.append(name, out || input);
-    if (out) row.appendChild(input);
-    box.appendChild(row);
-    if (f.type === "color") box.appendChild(gradientRow(f, saved[gradKey(f)]));
+    if (out) { row.appendChild(out); item.appendChild(input) }   // a size: value on the right, slider below
+    else if (f.type === "color") {
+      const grad = gradientRow(f, saved[gradKey(f)]);
+      row.append(fillSwitch(f, grad), input);
+      item.appendChild(grad);
+    } else row.appendChild(input);
   }
   probe.remove();
   $("themeBuilderH").textContent = builtinName ? `Edit ${builtinName}` : slug ? `Edit ${words(slug)}` : "New theme";
@@ -276,20 +289,35 @@ function openBuilder(slug, css, builtinName) {
 // (`under`) when they have one. The color itself stays solid for borders, mixes and the rest.
 const gradKey = f => f.fill || `--grad${f.key.slice(1)}`;
 
+// The second line of a color item, shown for a gradient: angle, and the color it ends on
+// (in the same column as the color it starts from). Hidden means solid.
 function gradientRow(f, saved) {
   const [, angle = "180", end = "#000000"] = /linear-gradient\((\d+)deg,\s*#\w+,\s*(#\w+)\)/.exec(saved || "") || [];
-  const row = document.createElement("div"); row.className = "builder-grad"; row.dataset.gradient = f.key;
-  const toggle = document.createElement("label"), on = document.createElement("input");
-  on.type = "checkbox"; on.checked = !!saved; toggle.append(on, "Gradient");
-  const more = document.createElement("span"); more.hidden = !on.checked;
-  const to = document.createElement("input"); to.type = "color"; to.value = end; to.setAttribute("aria-label", `${f.label}: gradient end color`);
+  const row = document.createElement("div"); row.className = "builder-grad"; row.dataset.gradient = f.key; row.hidden = !saved;
+  const label = document.createElement("span"); label.textContent = "Angle";
   const turn = document.createElement("input"); turn.type = "range"; Object.assign(turn, { min: 0, max: 360, step: 15, value: angle });
   turn.setAttribute("aria-label", `${f.label}: gradient angle`);
   const out = document.createElement("output");
-  more.append(to, turn, out);
-  on.addEventListener("change", () => { more.hidden = !on.checked });
-  row.append(toggle, more);
+  const to = document.createElement("input"); to.type = "color"; to.value = end; to.setAttribute("aria-label", `${f.label}: gradient end color`);
+  row.append(label, turn, out, to);
   return row;
+}
+
+// Solid | Gradient: a small segmented pair, styled apart from .btn so themes' button rules
+// don't resize it.
+function fillSwitch(f, grad) {
+  const seg = document.createElement("div"); seg.className = "fill-switch"; seg.setAttribute("role", "group"); seg.setAttribute("aria-label", `${f.label} fill`);
+  for (const [text, gradient] of [["Solid", false], ["Gradient", true]]) {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = text; b.setAttribute("aria-pressed", grad.hidden !== gradient);
+    b.addEventListener("click", () => {
+      grad.hidden = !gradient;
+      for (const other of seg.children) other.setAttribute("aria-pressed", other === b);
+      preview();
+    });
+    seg.appendChild(b);
+  }
+  return seg;
 }
 
 function builderCss() {
@@ -297,21 +325,20 @@ function builderCss() {
   for (const i of $("builderFields").querySelectorAll("[data-key]")) {
     if (i.type === "range") {
       i.style.setProperty("--fill", `${(i.value - i.min) / (i.max - i.min) * 100}%`);
-      i.previousElementSibling.textContent = i.value + i.dataset.unit;
+      i.closest(".builder-item").querySelector("output").textContent = i.value + i.dataset.unit;
     }
     if (onlyChanged && i.value === i.dataset.start) continue;
     changed.add(i.dataset.key);
     lines.push(`${i.dataset.key}: ${i.value}${i.dataset.unit || ""};`);
   }
-  // Derived values follow the values they're made from; for a built-in theme, only changed ones.
   const textRules = [];
   for (const g of $("builderFields").querySelectorAll("[data-gradient]")) {
-    const [on, to, turn] = g.querySelectorAll("input"), out = g.querySelector("output");
-    out.textContent = `${turn.value}°`;
+    const turn = g.querySelector("[type=range]"), to = g.querySelector("[type=color]");
+    g.querySelector("output").textContent = `${turn.value}°`;
     turn.style.setProperty("--fill", `${turn.value / 3.6}%`);
-    if (!on.checked) continue;
+    if (g.hidden) continue;
     const f = FIELDS.find(f => f.key === g.dataset.gradient), key = gradKey(f);
-    const from = g.previousElementSibling.querySelector("[data-key]").value;
+    const from = g.closest(".builder-item").querySelector("[data-key]").value;
     changed.add(key);
     lines.push(`${key}: linear-gradient(${turn.value}deg, ${from}, ${to.value});`);
     if (f.hover) lines.push(`${f.hover}: var(${key});`);
@@ -320,6 +347,7 @@ function builderCss() {
       textRules.push(`${f.clip} {\n  background: ${layers[0]}; -webkit-background-clip: ${layers[1]}; background-clip: ${layers[1]}; color: transparent;\n}\n`);
     }
   }
+  // Derived values follow the values they're made from; for a built-in theme, only changed ones.
   const uses = k => !onlyChanged || changed.has(k);
   const get = k => $("builderFields").querySelector(`[data-key="${k}"]`).value;
   if (uses("--bg")) lines.unshift(`color-scheme: ${light(get("--bg")) ? "light" : "dark"};`);
