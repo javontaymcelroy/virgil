@@ -1,63 +1,116 @@
-/* Themes are folders of CSS custom properties: themes/default/ ships with the app, and any
-   themes/private/<name>/theme.css on your machine is found at build time and listed under
-   Settings → Themes (the first one is on until you choose). At most one theme is on; turning
-   it off goes back to the default. A theme loads after the default, so it only overrides what it sets. */
+/* Themes are CSS custom properties layered on the default (themes/default/theme.css). Two kinds
+   can be layered on top, listed under Settings → Themes:
+   - built-in private themes: themes/private/<name>/theme.css, found when Virgil is built
+     (that folder is gitignored, so they only exist in your own builds);
+   - added themes: .css files chosen with "Add theme…", copied by Rust into the app-data folder
+     and served as vtheme://localhost/<name>.css.
+   At most one is on; turning it off returns to the default. Until you choose, the first
+   built-in private theme is on. */
 
+import { invoke, isTauri, convertFileSrc } from "@tauri-apps/api/core";
 import { store } from "./store.js";
 
 // Filled in by vite.config.js from the folders in themes/private/.
 const PRIVATE = typeof __VIRGIL_PRIVATE_THEMES__ === "undefined" ? [] : __VIRGIL_PRIVATE_THEMES__;
-export const themes = ["default", ...PRIVATE];
+const ADDED = "added:";
 
 const $ = id => document.getElementById(id);
 const ready = () => document.documentElement.setAttribute("data-ready", "");
+const words = s => s.split("-").filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(" ");
 
-function apply(name) {
+let current = "default", added = [];
+
+function href(id) {
+  if (PRIVATE.includes(id)) return `/private/${id}/theme.css`;
+  if (id.startsWith(ADDED)) return `${convertFileSrc(id.slice(ADDED.length) + ".css", "vtheme")}?v=${Date.now()}`;
+  return null;
+}
+
+function apply(id) {
   document.getElementById("theme-override")?.remove();
-  if (name === "default" || !PRIVATE.includes(name)) { ready(); return }
+  const url = href(id);
+  if (!url) { ready(); return }
   const link = document.createElement("link");
-  link.id = "theme-override"; link.rel = "stylesheet"; link.href = `/private/${name}/theme.css`;
-  link.onload = link.onerror = ready;
+  link.id = "theme-override"; link.rel = "stylesheet"; link.href = url;
+  link.onload = ready;
+  link.onerror = () => { ready(); if (current === id) choose("default") };   // e.g. an added theme was deleted
   document.head.appendChild(link);
 }
 
-const label = name => name[0].toUpperCase() + name.slice(1);
-let current = "default";
-
-function choose(name) {
-  current = name;
-  store.set("theme", name);
-  apply(name);
-  for (const row of $("themeList").children) row.setAttribute("aria-checked", row.dataset.theme === name);
+function choose(id) {
+  current = id;
+  store.set("theme", id);
+  apply(id);
+  for (const row of document.querySelectorAll(".theme-row")) row.setAttribute("aria-checked", row.dataset.theme === id);
 }
 
-function renderToggles() {
-  const list = $("themeList");
-  for (const name of themes) {
+function setThemeStatus(message, kind) {
+  const s = $("themeStatus"); s.textContent = message; s.className = "status" + (kind ? " " + kind : "");
+}
+
+function render() {
+  const list = $("themeList"); list.textContent = "";
+  const entries = [
+    ["default", "Default", "Light and dark, follows macOS"],
+    ...PRIVATE.map(n => [n, words(n), "Private, built into your copy"]),
+    ...added.map(n => [ADDED + n, words(n), "Added theme"]),
+  ];
+  for (const [id, name, note] of entries) {
+    const item = document.createElement("div"); item.className = "theme-item";
     const row = document.createElement("button");
-    row.type = "button"; row.className = "theme-row"; row.setAttribute("role", "switch"); row.dataset.theme = name;
-    const text = document.createElement("span");
-    text.textContent = label(name);
-    const sub = document.createElement("small");
-    sub.textContent = name === "default" ? "Light and dark, follows macOS" : "Private, only in your builds";
-    text.appendChild(sub);
+    row.type = "button"; row.className = "theme-row"; row.setAttribute("role", "switch"); row.dataset.theme = id;
+    row.setAttribute("aria-checked", id === current);
+    const text = document.createElement("span"); text.textContent = name;
+    const sub = document.createElement("small"); sub.textContent = note; text.appendChild(sub);
     const sw = document.createElement("span"); sw.className = "switch"; sw.setAttribute("aria-hidden", "true");
     row.append(text, sw);
     // Turning a theme on turns the others off; turning the current one off returns to the default.
-    row.addEventListener("click", () => choose(name === current && name !== "default" ? "default" : name));
-    list.appendChild(row);
+    row.addEventListener("click", () => choose(id === current && id !== "default" ? "default" : id));
+    item.appendChild(row);
+    if (id.startsWith(ADDED)) {
+      const rm = document.createElement("button");
+      rm.type = "button"; rm.className = "theme-remove"; rm.textContent = "×";
+      rm.setAttribute("aria-label", `Remove ${name}`); rm.title = `Remove ${name}`;
+      rm.addEventListener("click", () => remove(id.slice(ADDED.length), name));
+      item.appendChild(rm);
+    }
+    list.appendChild(item);
   }
-  $("themeNote").textContent = PRIVATE.length
-    ? "Themes in themes/private/ appear here the next time Virgil is built."
-    : "Add your own as themes/private/<name>/theme.css; it appears here the next time Virgil is built.";
+}
+
+async function refresh() {
+  try { added = await invoke("list_themes") } catch { added = [] }
+  if (current.startsWith(ADDED) && !added.includes(current.slice(ADDED.length))) choose("default");
+  render();
+}
+
+async function add() {
+  setThemeStatus("");
+  try {
+    const name = await invoke("add_theme");
+    if (!name) return;
+    await refresh();
+    choose(ADDED + name);
+    setThemeStatus(`Added ${words(name)}.`, "ok");
+  } catch (err) { setThemeStatus(String(err), "err") }
+}
+
+async function remove(name, label) {
+  try {
+    await invoke("remove_theme", { name });
+    if (current === ADDED + name) choose("default");
+    await refresh();
+    setThemeStatus(`Removed ${label}.`, "ok");
+  } catch (err) { setThemeStatus(String(err), "err") }
 }
 
 export function initTheme() {
-  // Until you pick one, a private theme (if this build has one) wins over the default.
   const saved = store.get("theme", null);
-  current = saved === "default" || PRIVATE.includes(saved) ? saved : PRIVATE[0] || "default";
+  const known = saved === "default" || PRIVATE.includes(saved) || (saved && saved.startsWith(ADDED) && isTauri());
+  current = known ? saved : PRIVATE[0] || "default";
   apply(current);
-  setTimeout(ready, 1500); // never stay hidden if a theme fails to load
-  renderToggles();
-  choose(current);
+  setTimeout(ready, 1500); // never stay hidden if a theme is slow to load
+  render();
+  if (isTauri()) { refresh(); $("addTheme").addEventListener("click", add) }
+  else $("addTheme").hidden = true;
 }

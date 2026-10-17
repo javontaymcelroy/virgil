@@ -194,13 +194,16 @@ kbd { font: 500 var(--text-xs)/1 var(--font-mono); border: var(--border-width) s
 .theme-list { display: flex; flex-direction: column; border: var(--border-width) solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
 .theme-row {
   display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
-  width: 100%; padding: var(--space-3) var(--space-4);
-  background: var(--surface); color: var(--text); border: 0; border-top: var(--border-width) solid var(--border);
+  flex: 1; min-width: 0; padding: var(--space-3) var(--space-4);
+  background: var(--surface); color: var(--text); border: 0;
   font: var(--text-md)/1.4 var(--font-ui); text-align: left; cursor: pointer;
   transition: background-color var(--dur) var(--ease);
 }
-.theme-row:first-child { border-top: 0; }
+.theme-item { display: flex; align-items: stretch; border-top: var(--border-width) solid var(--border); }
+.theme-item:first-child { border-top: 0; }
 .theme-row:hover { background: var(--surface-sunken); }
+.theme-remove { flex: none; width: var(--control-h); border: 0; border-left: var(--border-width) solid var(--border); background: var(--surface); color: var(--text-muted); font: var(--text-lg)/1 var(--font-ui); cursor: pointer; }
+.theme-remove:hover { color: var(--error); background: var(--surface-sunken); }
 .theme-row small { display: block; color: var(--text-muted); font-size: var(--text-sm); }
 .switch { position: relative; flex: none; width: 36px; height: 20px; border-radius: var(--radius-pill); background: var(--track); transition: background-color var(--dur) var(--ease); }
 .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: var(--radius-pill); background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); transition: transform var(--dur) var(--ease); }

@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod import;
+mod themes;
 mod voice;
 
 use import::Document;
@@ -54,7 +55,13 @@ fn handle_drop(app: &AppHandle, paths: &[PathBuf]) {
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![open_document])
+        .register_uri_scheme_protocol(themes::SCHEME, themes::serve)
+        .invoke_handler(tauri::generate_handler![
+            open_document,
+            themes::list_themes,
+            themes::add_theme,
+            themes::remove_theme
+        ])
         .on_window_event(|window, event| {
             if let WindowEvent::DragDrop(drag) = event {
                 let app = window.app_handle();

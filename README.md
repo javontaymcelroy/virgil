@@ -48,6 +48,8 @@ Tests: `npm test` (reader engine) and `cargo test` in `src-tauri/` (file import)
 
 Every color, font and size comes from CSS custom properties in [`themes/default/theme.css`](themes/default/theme.css); the app's stylesheet hard-codes none of them. To use your own look, create `themes/private/<name>/theme.css`. It loads on top of the default, so it only needs the properties it changes, and it can add its own rules (and `@import` web fonts). `themes/private/` is gitignored: your theme is in your local builds, used automatically, and switched on and off under **Settings → Themes**, but it is never committed or included in public releases.
 
+You can also add a theme without rebuilding: **Settings → Themes → Add theme…** takes any `.css` file, copies it into Virgil's app data on your Mac (`~/Library/Application Support/io.github.javontaymcelroy.virgil/themes/`), and lists it with a switch and a remove button.
+
 ## Releasing
 
 Bump `version` in `src-tauri/tauri.conf.json` and `package.json`, commit, then tag:
