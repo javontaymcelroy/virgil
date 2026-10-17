@@ -70,3 +70,16 @@ jobs:
           releaseBody: ${{ env.RELEASE_NOTES }}
           releaseDraft: false
           prerelease: false
+
+      # tauri-action notarizes the app but not the .dmg around it. Notarize and staple the .dmg
+      # too, so a downloaded copy passes Gatekeeper offline, and replace the release's copy.
+      - name: Notarize the .dmg
+        if: env.HAS_SIGNING == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          dmg=$(ls src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg)
+          xcrun notarytool submit "$dmg" --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_PASSWORD" --wait
+          xcrun stapler staple "$dmg"
+          spctl -a -vvv -t open --context context:primary-signature "$dmg"
+          gh release upload "${{ github.ref_name }}" "$dmg" --clobber
