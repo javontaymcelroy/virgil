@@ -93,7 +93,7 @@ h1, h2, p { margin: 0; }
 }
 body.dropping .drop-hint { opacity: 1; }
 
-/* Passage shown when paused */
+/* Passage around the current word; click a word to jump there */
 .context {
   padding: var(--space-4) var(--space-5);
   font: var(--text-md)/1.7 var(--font-reading);
@@ -101,7 +101,9 @@ body.dropping .drop-hint { opacity: 1; }
   max-height: calc(7 * 1.7 * var(--text-md) + 2 * var(--space-4));
   overflow: auto; overscroll-behavior: contain;
 }
-.context mark { background: none; color: var(--text); border-bottom: 2px solid var(--pivot); }
+.context span { cursor: pointer; border-radius: 2px; }
+.context span:hover { color: var(--text); }
+.context .cur { color: var(--text); border-bottom: 2px solid var(--pivot); }
 
 /* Buttons */
 .btn {
@@ -145,6 +147,7 @@ input[type="range"]::-moz-range-thumb { width: var(--thumb-size); height: var(--
 .setting:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .setting .val { font: var(--heading-weight) var(--text-lg)/1.2 var(--font-ui); color: var(--text); font-variant-numeric: tabular-nums; }
 .setting .val small { margin-left: var(--space-2); }
+.setting .note { margin: 0; color: var(--text-faint); font-size: var(--text-sm); line-height: 1.4; }
 .choice { display: flex; align-items: center; gap: var(--space-2); cursor: pointer; }
 .choice input { accent-color: var(--accent); width: 16px; height: 16px; margin: 0; }
 .select, .textarea, .input {

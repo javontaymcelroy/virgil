@@ -71,6 +71,12 @@
         <label class="choice"><input type="checkbox" id="optPunct" checked> Rest at punctuation</label>
         <label class="choice"><input type="checkbox" id="optRamp" checked> Ease into pace</label>
       </div>
+      <div class="setting">
+        <span class="label">Voice</span>
+        <label class="choice"><input type="checkbox" id="optVoice"> Read aloud</label>
+        <select class="select" id="voice" aria-label="Voice"></select>
+        <p class="note" id="voiceNote" hidden>For a natural voice, download a Premium one in System Settings › Accessibility › Read &amp; Speak › System Voice. It appears here as soon as it's installed.</p>
+      </div>
     </div>
     <p class="keys"><kbd>Space</kbd> read · <kbd>←</kbd><kbd>→</kbd> sentence · <kbd>↑</kbd><kbd>↓</kbd> pace · <kbd>⌘O</kbd> open · <kbd>⌘T</kbd> add text · <kbd>⌘,</kbd> settings</p>
   </section>
@@ -86,7 +92,7 @@
     <p class="status" id="logEmpty">Sessions over twenty words are kept here, on this Mac only.</p>
   </section>
 
-  <p class="footnote">Comprehension tends to slip as pace climbs, and above roughly 400 wpm most readers stop sounding words out in their head. Pause often; the passage appears beneath the reader whenever you stop.</p>
+  <p class="footnote">Comprehension tends to slip as pace climbs, and above roughly 400 wpm most readers stop sounding words out in their head. Pause often; the passage beneath the reader follows along, and clicking a word there jumps to it.</p>
 
 </div>
 

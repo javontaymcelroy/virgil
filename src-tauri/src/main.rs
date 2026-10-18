@@ -63,7 +63,10 @@ fn main() {
             themes::save_theme,
             themes::save_override,
             themes::read_theme,
-            themes::remove_theme
+            themes::remove_theme,
+            voice::system::speech_voices,
+            voice::system::speech_speak,
+            voice::system::speech_stop
         ])
         .on_window_event(|window, event| {
             if let WindowEvent::DragDrop(drag) = event {

@@ -1,7 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { tokenize, orp, delayFor, rampedWpm, sentenceJump, formatDuration } from "../src/reader/text.js";
-import { wordAtTime } from "../src/voice/sync.js";
+import { tokenize, orp, delayFor, rampedWpm, sentenceJump, formatDuration, chunkParagraphs } from "../src/reader/text.js";
 
 test("tokenize marks sentence ends, pauses and paragraphs", () => {
   const { tokens, starts } = tokenize("One, two.  Three!\n\nFour \"five.\"\nsix");
@@ -53,12 +52,25 @@ test("durations read naturally", () => {
   assert.equal(formatDuration(3_900_000), "1h 5m");
 });
 
-test("wordAtTime finds the word being spoken", () => {
-  const t = [{ word: 10, startMs: 0, endMs: 200 }, { word: 11, startMs: 250, endMs: 500 }, { word: 12, startMs: 600, endMs: 900 }];
-  assert.equal(wordAtTime(t, -5), -1);
-  assert.equal(wordAtTime(t, 0), 10);
-  assert.equal(wordAtTime(t, 240), 10);
-  assert.equal(wordAtTime(t, 250), 11);
-  assert.equal(wordAtTime(t, 5000), 12);
-  assert.equal(wordAtTime([], 100), -1);
+const sentence = (n, i) => Array.from({ length: n }, (_, k) => `w${i}_${k}`).join(" ") + ".";
+const text = (...ns) => ns.map(sentence).join(" ");
+
+function tiles(chunks, n) {
+  assert.equal(chunks[0].from, 0);
+  assert.equal(chunks[chunks.length - 1].to, n);
+  for (let i = 1; i < chunks.length; i++) assert.equal(chunks[i].from, chunks[i - 1].to);
+}
+
+test("chunkParagraphs groups whole paragraphs", () => {
+  const paras = Array.from({ length: 7 }, (_, p) => `${sentence(6, p)} ${sentence(6, p + 10)}`);
+  const { tokens } = tokenize(paras.join("\n\n"));
+  const c = chunkParagraphs(tokens, { paras: 3 });
+  assert.deepEqual(c, [{ from: 0, to: 36 }, { from: 36, to: 72 }, { from: 72, to: 84 }]);
+  tiles(c, tokens.length);
+});
+
+test("chunkParagraphs splits a wall of text at a sentence end past maxWords", () => {
+  const { tokens } = tokenize(text(30, 30, 30, 30));
+  const c = chunkParagraphs(tokens, { paras: 4, maxWords: 50 });
+  assert.deepEqual(c, [{ from: 0, to: 60 }, { from: 60, to: 120 }]);
 });

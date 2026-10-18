@@ -3,6 +3,9 @@
 
 import { tokenize, orp, sentenceIndex, sentenceJump, formatDuration } from "./text.js";
 import { createTimerPacer } from "./pacer.js";
+import { createSpeechPacer, systemVoices } from "./speechPacer.js";
+import { systemSpeech } from "../voice/systemSpeech.js";
+import { setStatus } from "../import.js";
 import { store } from "../store.js";
 
 const $ = id => document.getElementById(id);
@@ -14,10 +17,13 @@ export function createReader() {
     chunk: store.get("chunk", 1),
     punct: store.get("punct", true),
     ramp: store.get("ramp", true),
+    voice: store.get("voice", false),
+    voiceId: store.get("voiceId", ""),
   };
-  // The face a pacer sees: the tokens, the settings, and two callbacks.
-  const face = { tokens: [], settings, advanceTo, finish };
-  const pacer = createTimerPacer(face);
+  // The face a pacer sees: the tokens, sentence starts, the settings, and a few callbacks.
+  const face = { tokens: [], starts: [0], settings, advanceTo, finish, hint: t => { $("hint").textContent = t }, fail };
+  const timer = createTimerPacer(face), mac = systemSpeech(), speech = createSpeechPacer(face, mac);
+  let pacer = timer;
 
   let starts = [0], idx = 0, playing = false, title = "", session = null, wakeLock = null;
 
@@ -35,7 +41,7 @@ export function createReader() {
       el.className = "word chunk";
       el.textContent = tokens.slice(idx, idx + settings.chunk).map(t => t.w).join(" ");
     }
-    updateMeta();
+    updateMeta(); showContext();
   }
 
   function updateMeta() {
@@ -49,18 +55,28 @@ export function createReader() {
     $("wpmLive").textContent = (playing ? pacer.liveWpm() : settings.wpm) + " wpm";
   }
 
+  /** The passage around the current word: the previous sentence through the next two. Rebuilt
+   *  only when that window moves; otherwise just the highlight shifts, so it can follow every
+   *  word while reading. Each word is a span; clicking one seeks there. */
+  let ctxRange = null;
   function showContext() {
     const tokens = face.tokens;
     if (!tokens.length) return;
     const s = sentenceIndex(starts, idx);
     const a = starts[Math.max(0, s - 1)], b = starts[s + 2] ?? tokens.length;
-    const box = $("ctxText"); box.textContent = "";
-    for (let i = a; i < b; i++) {
-      if (i >= idx && i < idx + settings.chunk) { const m = document.createElement("mark"); m.textContent = tokens[i].w; box.appendChild(m) }
-      else box.appendChild(document.createTextNode(tokens[i].w));
-      box.appendChild(document.createTextNode(tokens[i].para ? "  ¶  " : " "));
+    const box = $("ctxText");
+    if (!ctxRange || ctxRange[0] !== a || ctxRange[1] !== b) {
+      ctxRange = [a, b];
+      box.replaceChildren(...tokens.slice(a, b).flatMap((t, k) => {
+        const w = document.createElement("span"); w.textContent = t.w; w.dataset.i = a + k;
+        return [w, document.createTextNode(t.para ? "  \u00b6  " : " ")];
+      }));
     }
-    $("context").hidden = false;
+    let cur = null;
+    for (const w of box.children) { const on = +w.dataset.i >= idx && +w.dataset.i < idx + settings.chunk; w.classList.toggle("cur", on); if (on && !cur) cur = w }
+    const panel = $("context"); panel.hidden = false;
+    if (cur) { const top = cur.offsetTop - panel.offsetTop, bottom = top + cur.offsetHeight;
+      if (top < panel.scrollTop) panel.scrollTop = top; else if (bottom > panel.scrollTop + panel.clientHeight) panel.scrollTop = bottom - panel.clientHeight }
   }
 
   /* ---------- pacer callbacks ---------- */
@@ -73,6 +89,7 @@ export function createReader() {
     idx = face.tokens.length - 1; render();
     stop(true);
   }
+  function fail(message) { stop(false); setStatus("Voice stopped: " + message, "err") }
 
   /* ---------- transport ---------- */
   function play() {
@@ -80,22 +97,23 @@ export function createReader() {
     if (idx >= face.tokens.length - 1) idx = 0;
     playing = true; session = { start: performance.now(), words: 0 };
     const btn = $("play"); btn.textContent = "Pause";
-    $("hint").textContent = ""; $("context").hidden = true;
+    $("hint").textContent = "";
     lockScreen();
+    pacer = settings.voice ? speech : timer;
     pacer.start(idx);
   }
   function stop(finished) {
     if (!playing) return;
     playing = false; pacer.stop(); releaseScreen();
     $("play").textContent = finished ? "Again" : "Read";
-    $("hint").textContent = finished ? "Finished." : "Paused. The passage is below.";
-    logSession(); showContext(); savePos(); updateMeta();
+    $("hint").textContent = finished ? "Finished." : "Paused.";
+    logSession(); savePos(); updateMeta();
   }
   const toggle = () => playing ? stop(false) : play();
 
   function seek(i) {
     idx = Math.max(0, Math.min(face.tokens.length - 1, i));
-    if (playing) pacer.start(idx); else { render(); showContext() }
+    if (playing) pacer.start(idx); else render();
     savePos();
   }
   const jumpSentence = dir => seek(sentenceJump(starts, idx, dir));
@@ -105,11 +123,23 @@ export function createReader() {
     $("wpm").value = settings.wpm; $("wpmVal").textContent = settings.wpm;
     $("wpm").style.setProperty("--fill", (settings.wpm - MIN_WPM) / (MAX_WPM - MIN_WPM) * 100 + "%");
     store.set("wpm", settings.wpm); updateMeta();
+    if (playing && pacer.setRate) pacer.setRate();
   }
   function setChunk(n) {
     settings.chunk = n; store.set("chunk", n);
     for (const b of $("chunkSeg").children) b.setAttribute("aria-pressed", +b.dataset.n === n);
-    render(); if (!playing) showContext();
+    render();
+  }
+
+  /* ---------- voice ---------- */
+  /** Fills the voice menu with this Mac's voices, Premium ones first. A saved pick that no
+   *  longer exists falls back to the first voice offered. */
+  function fillVoices() {
+    const sel = $("voice"), voices = systemVoices(mac.synth);
+    sel.replaceChildren(...voices.map(v => { const o = document.createElement("option"); o.value = v.id; o.textContent = v.name; return o }));
+    if (!voices.some(v => v.id === settings.voiceId)) { settings.voiceId = voices[0]?.id || ""; store.set("voiceId", settings.voiceId) }
+    sel.value = settings.voiceId;
+    $("voiceNote").hidden = voices.some(v => v.premium);
   }
 
   async function lockScreen() { try { if ("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen") } catch { wakeLock = null } }
@@ -157,8 +187,8 @@ export function createReader() {
     stop(false);
     const r = tokenize(doc.text || "");
     if (!r.tokens.length) return false;
-    face.tokens = r.tokens; starts = r.starts; title = doc.title || "Untitled";
-    idx = resume ? Math.min(savedPos(), face.tokens.length - 1) : 0;
+    face.tokens = r.tokens; starts = face.starts = r.starts; title = doc.title || "Untitled";
+    idx = resume ? Math.min(savedPos(), face.tokens.length - 1) : 0; ctxRange = null;
     $("docTitle").textContent = title;
     $("source").textContent = doc.source || ""; $("source").hidden = !doc.source;
     $("input").value = doc.text;
@@ -166,7 +196,7 @@ export function createReader() {
     $("hint").textContent = idx ? "Resuming where you left off. Press Space." : "Click the reader or press Space to begin.";
     // A book too big for local storage simply isn't kept; the sample opens next launch instead.
     if (remember && !store.set("doc", { title: doc.title, text: doc.text, source: doc.source || "" })) store.del("doc");
-    render(); showContext(); savePos();
+    render(); savePos();
     const w = $("word"); w.classList.remove("enter"); void w.offsetWidth; w.classList.add("enter");
     return true;
   }
@@ -178,11 +208,16 @@ export function createReader() {
     $("stage").addEventListener("click", toggle);
     $("back").addEventListener("click", () => jumpSentence(-1));
     $("fwd").addEventListener("click", () => jumpSentence(1));
+    $("ctxText").addEventListener("click", e => { const i = e.target.dataset.i; if (i !== undefined) seek(+i) });
     $("scrub").addEventListener("input", e => seek(+e.target.value));
     $("wpm").addEventListener("input", e => setWpm(+e.target.value));
     $("chunkSeg").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setChunk(+b.dataset.n) });
     $("optPunct").addEventListener("change", e => { settings.punct = e.target.checked; store.set("punct", settings.punct); updateMeta() });
     $("optRamp").addEventListener("change", e => { settings.ramp = e.target.checked; store.set("ramp", settings.ramp) });
+    $("optVoice").checked = settings.voice; fillVoices();
+    mac.synth?.addEventListener("voiceschanged", fillVoices);
+    $("optVoice").addEventListener("change", e => { settings.voice = e.target.checked; store.set("voice", settings.voice) });
+    $("voice").addEventListener("change", e => { stop(false); settings.voiceId = e.target.value; store.set("voiceId", settings.voiceId) });
     document.addEventListener("keydown", e => {
       if (e.metaKey || e.ctrlKey || e.altKey || e.target.matches("textarea, input:not([type=range]):not([type=checkbox]), select")) return;
       const keys = { " ": toggle, ArrowLeft: () => jumpSentence(-1), ArrowRight: () => jumpSentence(1), ArrowUp: () => setWpm(settings.wpm + 25), ArrowDown: () => setWpm(settings.wpm - 25) };
