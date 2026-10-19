@@ -262,6 +262,8 @@ test("Pop out shrinks the window to the reader, stays on top, keeps reading on b
   await pop.click();
   await expect(page.locator("body")).toHaveClass(/popped/);
   await expect(pop).toHaveAttribute("aria-pressed", "true");
+  await expect(pop.locator("svg.in")).toBeVisible();
+  await expect(pop.locator("svg.out")).toBeHidden();
   await expect(page.locator(".masthead")).toBeHidden();
   await expect(page.locator("#play")).toBeHidden();
   await expect(page.locator("#word")).toBeVisible();
@@ -275,6 +277,7 @@ test("Pop out shrinks the window to the reader, stays on top, keeps reading on b
   await page.keyboard.press("Space");
   await page.keyboard.press("Escape");
   await expect(page.locator("body")).not.toHaveClass(/popped/);
+  await expect(pop.locator("svg.out")).toBeVisible();
   await expect(page.locator(".masthead")).toBeVisible();
   expect((await calls(page, "plugin:window|set_always_on_top")).at(-1).args.value).toBe(false);
   expect((await calls(page, "plugin:window|set_size")).at(-1).args.value).toEqual({ Logical: { width: 1280, height: 900 } });
