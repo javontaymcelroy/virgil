@@ -44,11 +44,25 @@ for (const theme of ["paper", "night", "high-contrast"]) {
   }
 }
 
-test("Add text with the library and recent texts", async ({ page }) => {
+for (const width of [1280, 640]) {
+  test(`Library open at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await boot(page);
+    await drop(page, SHORT);
+    await page.keyboard.press("Meta+s");
+    await drop(page, { title: "A Longer Second Document", text: "Alpha beta gamma delta.", source: "second.md" });
+    await page.keyboard.press("Meta+l");
+    await expect(page.locator("#libraryPanel")).toHaveClass(/is-open/);
+    await settle(page);
+    await page.screenshot({ path: `${DIR}/library-${width}.png` });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+  });
+}
+
+test("Add text with recent texts", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await boot(page);
   await drop(page, SHORT);
-  await page.keyboard.press("Meta+s");
   await drop(page, { title: "A Longer Second Document", text: "Alpha beta gamma delta.", source: "second.md" });
   await page.keyboard.press("Meta+t");
   await settle(page);

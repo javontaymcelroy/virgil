@@ -1,11 +1,12 @@
-/* Side panels on the right: "Add a text" and "Settings". One is open at a time; which one is
-   remembered across launches. Each has a masthead button (aria-controls names its panel) and a
-   shortcut: ⌘T for Add a text, ⌘, for Settings. Esc closes the open panel. */
+/* Side panels: the Library on the left, "Add a text" and "Settings" on the right. One is open
+   at a time; which one is remembered across launches. Each has a masthead button
+   (aria-controls names its panel) and a shortcut: ⌘L for the Library, ⌘T for Add a text,
+   ⌘, for Settings. Esc closes the open panel. */
 
 import { store } from "./store.js";
 
-const PANELS = { text: "textPanel", settings: "settingsPanel" };
-const KEYS = { t: "text", ",": "settings" };
+const PANELS = { library: "libraryPanel", text: "textPanel", settings: "settingsPanel" };
+const KEYS = { l: "library", t: "text", ",": "settings" };
 const $ = id => document.getElementById(id);
 const toggleFor = name => document.querySelector(`[aria-controls="${PANELS[name]}"]`);
 const narrow = matchMedia("(max-width: 979px)");

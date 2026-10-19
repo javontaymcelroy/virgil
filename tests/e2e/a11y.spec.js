@@ -16,12 +16,20 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
-test("axe: Add text panel open, with the library and recent lists", async ({ page }) => {
+test("axe: Library open, with a shelved text and the button disabled", async ({ page }) => {
   await boot(page);
   await drop(page, SHORT);
   await page.keyboard.press("Meta+s");
-  await page.keyboard.press("Meta+t");
+  await page.keyboard.press("Meta+l");
   await expect(page.locator("#shelve")).toBeDisabled();
+  const r = await axe(page);
+  expect(report(r)).toBe("");
+});
+
+test("axe: Add text panel open, with the recent list", async ({ page }) => {
+  await boot(page);
+  await drop(page, SHORT);
+  await page.keyboard.press("Meta+t");
   const r = await axe(page);
   expect(report(r)).toBe("");
 });
@@ -101,6 +109,9 @@ test("under 980px the open drawer covers the page and makes it inert", async ({ 
   await expect(page.locator(".wrap")).toHaveAttribute("inert", "");
   await page.keyboard.press("Escape");
   await expect(page.locator(".wrap")).not.toHaveAttribute("inert", "");
+  await page.keyboard.press("Meta+l");
+  await expect(page.locator(".wrap")).toHaveAttribute("inert", "");
+  await expect(page.locator("#libraryPanel")).toHaveClass(/is-open/);
 });
 
 test("an error is shown and announced with every panel closed", async ({ page }) => {

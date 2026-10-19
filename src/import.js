@@ -50,12 +50,12 @@ export function wireImport(show, reader) {
     await renderLibrary();
   }
 
-  /** The library shelf: every saved text, by title, with how far it was read. Hidden in a
-   *  plain browser, where there is no disk to keep them on. */
+  /** The library shelf: every saved text, by title, with how far it was read. Its panel is
+   *  hidden in a plain browser, where there is no disk to keep them on. */
   let shelf = [];
   async function renderLibrary() {
     if (!isTauri()) return;
-    $("libraryWrap").hidden = false;
+    document.querySelector('[aria-controls="libraryPanel"]').hidden = false;
     try { shelf = await invoke("library_list") } catch (err) { shelf = []; setStatus(String(err), "err") }
     const positions = store.get("positions", {}), cur = reader.doc;
     const on = cur && shelf.find(e => e.id === cur.lib || docKey(e.title, e.words) === docKey(cur.title, reader.wordCount));

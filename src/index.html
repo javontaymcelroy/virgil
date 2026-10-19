@@ -12,8 +12,24 @@
 <!-- The window has no title bar: this strip is where you drag it, and it clears the traffic lights. -->
 <div class="titlebar" data-tauri-drag-region></div>
 <div class="app">
+<aside class="drawer drawer--left" id="libraryPanel" aria-labelledby="libraryH" inert>
+  <div class="drawer-inner panel">
+    <div class="drawer-head">
+      <h2 id="libraryH">Library</h2>
+      <button class="drawer-close" type="button" aria-label="Close panel" title="Close (Esc)">×</button>
+    </div>
+    <p>Texts you keep, however long, with how far you have read each. They stay on this Mac.</p>
+    <div class="row"><button class="btn" id="shelve" type="button" aria-keyshortcuts="Meta+S" title="Save the current text (⌘S)">Save to library</button></div>
+    <ul class="theme-list recent" id="library" hidden></ul>
+    <p class="status" id="libraryEmpty">Nothing saved yet.</p>
+  </div>
+</aside>
+
 <main class="wrap">
   <header class="masthead">
+    <button class="btn btn--sm btn--icon panel-toggle" type="button" aria-expanded="false" aria-controls="libraryPanel" aria-label="Library" title="Library (⌘L)" hidden>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    </button>
     <h1 class="brand">Virgil</h1>
     <div class="titles">
       <span class="doc-title" id="docTitle">Opening…</span>
@@ -86,7 +102,7 @@
         <p class="note" id="voiceNote" hidden>For a natural voice, download a Premium one in System Settings › Accessibility › Read &amp; Speak › System Voice. It appears here as soon as it's installed.</p>
       </div>
     </div>
-    <p class="keys"><kbd>Space</kbd> read · <kbd>←</kbd><kbd>→</kbd> sentence · <kbd>⇧←</kbd><kbd>⇧→</kbd> paragraph · <kbd>↑</kbd><kbd>↓</kbd> pace · <kbd>⌘O</kbd> open · <kbd>⌘S</kbd> save to library · <kbd>⌘T</kbd> add text · <kbd>⌘,</kbd> settings</p>
+    <p class="keys"><kbd>Space</kbd> read · <kbd>←</kbd><kbd>→</kbd> sentence · <kbd>⇧←</kbd><kbd>⇧→</kbd> paragraph · <kbd>↑</kbd><kbd>↓</kbd> pace · <kbd>⌘O</kbd> open · <kbd>⌘L</kbd> library · <kbd>⌘S</kbd> save to it · <kbd>⌘T</kbd> add text · <kbd>⌘,</kbd> settings</p>
   </section>
 
   <section class="card panel" aria-labelledby="recH">
@@ -112,12 +128,6 @@
       <button class="drawer-close" type="button" aria-label="Close panel" title="Close (Esc)">×</button>
     </div>
     <p>Paste anything, open a .txt, .md, .pdf or .epub file, or drop one on the window. Files are read on your Mac and never uploaded.</p>
-    <section class="drawer-section" id="libraryWrap" aria-labelledby="libraryH" hidden>
-      <h3 class="label" id="libraryH">Library</h3>
-      <ul class="theme-list recent" id="library" hidden></ul>
-      <p class="status" id="libraryEmpty">Nothing saved yet. Texts kept here stay on this Mac, however long they are.</p>
-      <div class="row"><button class="btn btn--sm" id="shelve" type="button" aria-keyshortcuts="Meta+S">Save to library</button></div>
-    </section>
     <section class="drawer-section" id="recentWrap" aria-labelledby="recentH" hidden>
       <h3 class="label" id="recentH">Recent</h3>
       <ul class="theme-list recent" id="recent"></ul>

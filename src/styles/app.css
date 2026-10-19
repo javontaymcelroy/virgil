@@ -19,7 +19,7 @@ h1, h2, p { margin: 0; }
    keeps content clear of the traffic lights. Content scrolls beneath it. */
 .titlebar { position: fixed; top: 0; left: 0; right: 0; height: var(--titlebar-h); z-index: 20; }
 
-/* App: the reader column, plus the "Add a text" side panel on the right */
+/* App: the library drawer on the left, the reader column, and the "Add a text" and Settings drawers on the right */
 .app { display: flex; align-items: flex-start; min-height: 100vh; }
 .app > .wrap { flex: 1; min-width: 0; }
 
@@ -126,6 +126,8 @@ body.dropping .drop-hint { opacity: 1; }
 .btn--primary { background: var(--primary-fill); border-color: var(--accent); color: var(--on-accent); }
 .btn--primary:hover { background: var(--primary-fill-hover); border-color: var(--accent-hover); }
 .btn--ghost { background: none; border-color: transparent; color: var(--text-muted); }
+.btn--icon { width: calc(var(--control-h) - var(--space-2)); min-width: 0; padding: 0; }
+.btn--icon svg { display: block; }
 .btn--ghost:hover { border-color: transparent; color: var(--text); }
 .seg { display: flex; gap: var(--space-2); }
 .seg .btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
@@ -192,6 +194,9 @@ kbd { font: 500 var(--text-xs)/1 var(--font-mono); border: var(--border-width) s
   transition: width calc(var(--dur) * 2) var(--ease);
 }
 .drawer.is-open { width: var(--panel-w); border-left-width: var(--border-width); }
+/* The library sits on the left, so its edge is on the right. */
+.drawer--left { border-left: 0; border-right: 0 solid var(--border); }
+.drawer--left.is-open { border-left-width: 0; border-right-width: var(--border-width); }
 .drawer-inner { width: var(--panel-w); height: 100%; overflow-y: auto; overscroll-behavior: contain; padding-top: calc(var(--titlebar-h) + var(--space-3)); }
 .drawer-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .drawer-close {
@@ -258,6 +263,7 @@ input[type="color"]::-webkit-color-swatch { border: 0; border-radius: calc(var(-
 .theme-row[aria-checked="true"] .switch::after { transform: translateX(16px); background: var(--on-accent); }
 @media (max-width: 979px) {
   .drawer { position: fixed; right: 0; z-index: 10; }
+  .drawer--left { right: auto; left: 0; }
   .drawer.is-open { box-shadow: var(--shadow-overlay); }
   .wrap[inert] { opacity: 0.4; transition: opacity var(--dur) var(--ease); }
 }

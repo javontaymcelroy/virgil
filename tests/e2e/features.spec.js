@@ -135,7 +135,8 @@ const recentOf = (page, title) => page.evaluate(t => JSON.parse(localStorage.get
 test("a text saved to the library is listed, reopens where it was left, and is still there after a relaunch", async ({ page }) => {
   await boot(page);
   await drop(page, SHORT);
-  await page.keyboard.press("Meta+t");
+  await page.getByRole("button", { name: "Library", exact: true }).click();
+  await expect(page.locator("#libraryPanel")).toHaveClass(/is-open/);
   await expect(page.locator("#libraryEmpty")).toBeVisible();
   const shelve = page.locator("#shelve");
   await expect(shelve).toBeEnabled();
@@ -186,7 +187,7 @@ test("removing from the library takes a confirming click and hands the text back
   await boot(page);
   await drop(page, SHORT);
   await page.keyboard.press("Meta+s");
-  await page.keyboard.press("Meta+t");
+  await page.keyboard.press("Meta+l");
   const remove = page.getByRole("button", { name: "Remove Short from the library" });
   await remove.click();
   await expect(remove).toHaveText("Remove?");
