@@ -31,10 +31,6 @@ const BLOCKS: &[&str] = &[
 const SKIPPED: &[&str] = &["head", "script", "style", "noscript", "svg", "math"];
 const HEADINGS: &[&str] = &["h1", "h2", "h3"];
 
-pub fn to_text(html: &str) -> String {
-    to_text_with_headings(html).0
-}
-
 /// The text plus every h1–h3: its text and the byte offset where it starts in the output.
 pub fn to_text_with_headings(html: &str) -> (String, Vec<(String, usize)>) {
     let mut out = String::with_capacity(html.len() / 2);
@@ -175,6 +171,11 @@ fn entity(name: &str) -> Option<char> {
         "ccedil" => 'ç',
         _ => return None,
     })
+}
+
+#[cfg(test)]
+fn to_text(html: &str) -> String {
+    to_text_with_headings(html).0
 }
 
 #[cfg(test)]

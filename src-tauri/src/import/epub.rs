@@ -28,7 +28,7 @@ fn check_inflated_size(path: &Path) -> Result<(), String> {
 }
 
 /// The title, the text, and each heading with its byte offset into the text.
-pub fn to_text(path: &Path) -> Result<(Option<String>, String, Vec<(String, usize)>), String> {
+pub fn to_text(path: &Path) -> Result<(Option<String>, String, super::Found), String> {
     check_inflated_size(path)?;
     let mut doc = epub::doc::EpubDoc::new(path)
         .map_err(|_| "Couldn't read this EPUB. It may be damaged or DRM-protected.".to_string())?;

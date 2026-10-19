@@ -37,6 +37,9 @@ pub struct Heading {
 
 const MAX_HEADINGS: usize = 500;
 
+/// What a converter reports: a heading's text and its byte offset into the converted text.
+pub type Found = Vec<(String, usize)>;
+
 /// Turns `(title, byte offset)` pairs from a converter into word-indexed headings. Only the
 /// word count matters, so `tidy`'s whitespace changes don't move them.
 fn headings_at(text: &str, found: Vec<(String, usize)>) -> Vec<Heading> {

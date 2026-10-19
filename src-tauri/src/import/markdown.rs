@@ -4,7 +4,7 @@
 use pulldown_cmark::{Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 
 /// The title, the text, and each h1–h3 with its byte offset into the text.
-pub fn to_text(source: &str) -> (Option<String>, String, Vec<(String, usize)>) {
+pub fn to_text(source: &str) -> (Option<String>, String, super::Found) {
     let options = Options::ENABLE_YAML_STYLE_METADATA_BLOCKS
         | Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
         | Options::ENABLE_TABLES
