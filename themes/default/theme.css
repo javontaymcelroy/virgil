@@ -19,7 +19,7 @@
   /* Text */
   --text: #1b1b1f;
   --text-muted: #5e5f66;
-  --text-faint: #8d8e95;
+  --text-faint: #6c6d74;
 
   /* Accent: primary button, focus, the pivot letter */
   --accent: #2f3136;
@@ -38,7 +38,7 @@
   --button-fill: var(--button);
   --button-text: var(--text);
   --button-border: var(--border-strong);
-  --focus-ring: 0 0 0 3px rgba(47, 49, 54, 0.25);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
   --selection: rgba(211, 63, 50, 0.18);
 
   /* Status */
@@ -107,13 +107,12 @@
 
     --text: #ececef;
     --text-muted: #a3a4ab;
-    --text-faint: #75767d;
+    --text-faint: #8e8f96;
 
     --accent: #ececef;
     --accent-hover: #ffffff;
     --on-accent: #161618;
     --pivot: #ff6b5b;
-    --focus-ring: 0 0 0 3px rgba(236, 236, 239, 0.25);
     --selection: rgba(255, 107, 91, 0.25);
 
     --ok: #6cc59b;

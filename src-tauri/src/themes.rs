@@ -4,7 +4,7 @@
 //! Changes made to a built-in theme (Default or a private one) are kept the same way, as
 //! `_<theme>.css`, layered on top of it until reset.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tauri::http::{Request, Response, StatusCode};
 use tauri::{AppHandle, Manager, Runtime, UriSchemeContext};
 use tauri_plugin_dialog::DialogExt;
@@ -93,16 +93,51 @@ pub async fn add_theme(app: AppHandle) -> Result<Option<String>, String> {
                 .map(|s| s.to_string_lossy().into_owned())
                 .unwrap_or_default(),
         );
-        write(&app, &name, &css)?;
+        add_in(&dir(&app)?, &name, &css)?;
         Ok(Some(name))
     })
     .await
     .map_err(|e| e.to_string())?
 }
 
-fn write<R: Runtime>(app: &AppHandle<R>, name: &str, css: &str) -> Result<(), String> {
-    std::fs::write(dir(app)?.join(format!("{name}.css")), css)
+fn write(dir: &Path, name: &str, css: &str) -> Result<(), String> {
+    std::fs::write(dir.join(format!("{name}.css")), css)
         .map_err(|e| format!("Couldn't save the theme: {e}."))
+}
+
+fn add_in(dir: &Path, name: &str, css: &str) -> Result<(), String> {
+    if dir.join(format!("{name}.css")).exists() {
+        return Err(format!(
+            "A theme called “{name}” is already here. Remove it first, or rename the file."
+        ));
+    }
+    write(dir, name, css)
+}
+
+fn save_in(dir: &Path, name: &str, css: &str, replacing: Option<String>) -> Result<String, String> {
+    if name.trim().is_empty() {
+        return Err("Give the theme a name.".into());
+    }
+    if css.trim().is_empty() {
+        return Err("Paste or write some CSS first.".into());
+    }
+    if css.len() as u64 > MAX_BYTES {
+        return Err("That theme is larger than 2 MB.".into());
+    }
+    let id = slug(name);
+    // Only a theme of the user's own can be replaced: never a built-in's `_` override.
+    let replacing = replacing.filter(|r| is_slug(r) && !r.starts_with('_'));
+    if replacing.as_deref() != Some(id.as_str()) && dir.join(format!("{id}.css")).exists() {
+        return Err(format!(
+            "A theme called “{}” already exists. Choose another name.",
+            name.trim()
+        ));
+    }
+    write(dir, &id, css)?;
+    if let Some(old) = replacing.filter(|old| *old != id) {
+        let _ = std::fs::remove_file(dir.join(format!("{old}.css")));
+    }
+    Ok(id)
 }
 
 /// Saves CSS typed or pasted in Settings under `name` and returns the theme id. When editing,
@@ -115,28 +150,7 @@ pub fn save_theme(
     css: String,
     replacing: Option<String>,
 ) -> Result<String, String> {
-    if name.trim().is_empty() {
-        return Err("Give the theme a name.".into());
-    }
-    if css.trim().is_empty() {
-        return Err("Paste or write some CSS first.".into());
-    }
-    if css.len() as u64 > MAX_BYTES {
-        return Err("That theme is larger than 2 MB.".into());
-    }
-    let id = slug(&name);
-    let replacing = replacing.filter(|r| is_slug(r));
-    if replacing.as_deref() != Some(id.as_str()) && dir(&app)?.join(format!("{id}.css")).exists() {
-        return Err(format!(
-            "A theme called “{}” already exists. Choose another name.",
-            name.trim()
-        ));
-    }
-    write(&app, &id, &css)?;
-    if let Some(old) = replacing.filter(|old| *old != id) {
-        let _ = std::fs::remove_file(dir(&app)?.join(format!("{old}.css")));
-    }
-    Ok(id)
+    save_in(&dir(&app)?, &name, &css, replacing)
 }
 
 /// Saves changes to the built-in theme `id` as `_<id>.css`, replacing earlier changes.
@@ -145,7 +159,11 @@ pub fn save_override(app: AppHandle, id: String, css: String) -> Result<(), Stri
     if css.len() as u64 > MAX_BYTES {
         return Err("That theme is larger than 2 MB.".into());
     }
-    write(&app, &format!("_{}", slug(&id)), &css)
+    // Built-in ids are already slugs; anything else isn't a theme the page was shown.
+    if slug(&id) != id {
+        return Err("Unknown theme.".into());
+    }
+    write(&dir(&app)?, &format!("_{id}"), &css)
 }
 
 #[tauri::command]
@@ -199,6 +217,52 @@ pub fn serve<R: Runtime>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn folder(tag: &str) -> PathBuf {
+        let d = std::env::temp_dir().join(format!("virgil-themes-{tag}-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        d
+    }
+
+    #[test]
+    fn saving_cannot_delete_a_builtin_override_or_overwrite_another_theme() {
+        let d = folder("save");
+        std::fs::write(d.join("_default.css"), "a").unwrap();
+        std::fs::write(d.join("night.css"), "b").unwrap();
+        assert_eq!(
+            save_in(&d, "Dawn", ":root{}", Some("_default".into())).unwrap(),
+            "dawn"
+        );
+        assert!(
+            d.join("_default.css").exists(),
+            "the built-in's override survived"
+        );
+        assert!(save_in(&d, "Night", ":root{}", None)
+            .unwrap_err()
+            .contains("already exists"));
+        assert!(save_in(&d, "Night", ":root{}", Some("dawn".into()))
+            .unwrap_err()
+            .contains("already exists"));
+        // Renaming a theme of the user's own moves it.
+        assert_eq!(
+            save_in(&d, "Dusk", ":root{}", Some("dawn".into())).unwrap(),
+            "dusk"
+        );
+        assert!(!d.join("dawn.css").exists() && d.join("dusk.css").exists());
+        let _ = std::fs::remove_dir_all(&d);
+    }
+
+    #[test]
+    fn adding_a_file_never_overwrites() {
+        let d = folder("add");
+        add_in(&d, "night", "a").unwrap();
+        assert!(add_in(&d, "night", "b")
+            .unwrap_err()
+            .contains("already here"));
+        assert_eq!(std::fs::read_to_string(d.join("night.css")).unwrap(), "a");
+        let _ = std::fs::remove_dir_all(&d);
+    }
 
     #[test]
     fn slugs_are_safe_file_names() {

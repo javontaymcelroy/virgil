@@ -29,9 +29,15 @@ const BLOCKS: &[&str] = &[
     "ol",
 ];
 const SKIPPED: &[&str] = &["head", "script", "style", "noscript", "svg", "math"];
+const HEADINGS: &[&str] = &["h1", "h2", "h3"];
 
-pub fn to_text(html: &str) -> String {
+/// The text plus every h1–h3: its text and the byte offset where it starts in the output.
+pub fn to_text_with_headings(html: &str) -> (String, Vec<(String, usize)>) {
     let mut out = String::with_capacity(html.len() / 2);
+    let mut headings = Vec::new();
+    let mut heading_at: Option<usize> = None;
+    // Lowercased once for case-insensitive searches; ASCII lowercasing keeps every offset.
+    let lower = html.to_ascii_lowercase();
     let mut rest = html;
     while let Some(lt) = rest.find('<') {
         push_text(&mut out, &rest[..lt]);
@@ -61,17 +67,30 @@ pub fn to_text(html: &str) -> String {
 
         if !closing && !self_closing && SKIPPED.contains(&name.as_str()) {
             let close = format!("</{name}");
-            rest = find_ci(rest, &close)
+            let at = html.len() - rest.len();
+            rest = lower[at..]
+                .find(&close)
                 .and_then(|i| rest[i..].find('>').map(|j| &rest[i + j + 1..]))
                 .unwrap_or("");
         } else if name == "br" {
             out.push('\n');
         } else if BLOCKS.contains(&name.as_str()) {
+            if HEADINGS.contains(&name.as_str()) {
+                if closing {
+                    if let Some(at) = heading_at.take() {
+                        headings.push((out[at..].trim().to_string(), at));
+                    }
+                } else if !self_closing {
+                    out.push_str("\n\n");
+                    heading_at = Some(out.len());
+                    continue;
+                }
+            }
             out.push_str("\n\n");
         }
     }
     push_text(&mut out, rest);
-    out
+    (out, headings)
 }
 
 /// Appends a text node: entities decoded, whitespace runs collapsed to one space.
@@ -86,12 +105,6 @@ fn push_text(out: &mut String, raw: &str) {
             out.push(c);
         }
     }
-}
-
-fn find_ci(haystack: &str, needle: &str) -> Option<usize> {
-    haystack
-        .to_ascii_lowercase()
-        .find(&needle.to_ascii_lowercase())
 }
 
 fn decode_entities(s: &str) -> String {
@@ -161,6 +174,11 @@ fn entity(name: &str) -> Option<char> {
 }
 
 #[cfg(test)]
+fn to_text(html: &str) -> String {
+    to_text_with_headings(html).0
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -184,5 +202,54 @@ mod tests {
     #[test]
     fn skipped_elements_are_dropped_whatever_their_case() {
         assert_eq!(to_text("a<SCRIPT>x()</SCRIPT>b").trim(), "ab");
+    }
+}
+
+#[cfg(test)]
+mod adversarial {
+    use super::*;
+
+    /// S2: every skipped tag lowercases the rest of the chapter to find its close.
+    #[test]
+    fn skipped_tags_scale_linearly() {
+        let html = "<script></script>".repeat(20_000);
+        let start = std::time::Instant::now();
+        assert_eq!(to_text(&html).trim(), "");
+        let took = start.elapsed();
+        assert!(took.as_millis() < 500, "20k script tags took {took:?}");
+    }
+
+    #[test]
+    fn headings_are_reported_with_their_offsets() {
+        let (text, hs) = to_text_with_headings(
+            "<h1>One</h1><p>a b</p><H2> Two <i>x</i> </H2><p>c</p><h4>no</h4>",
+        );
+        assert_eq!(hs.len(), 2);
+        assert_eq!(hs[0].0, "One");
+        assert_eq!(hs[1].0, "Two x");
+        for (title, at) in &hs {
+            assert!(text[*at..].starts_with(title.split(' ').next().unwrap()));
+        }
+    }
+
+    #[test]
+    fn unterminated_tags_and_entities_do_not_panic() {
+        for s in [
+            "<",
+            "<p",
+            "<!--",
+            "<![CDATA[",
+            "&",
+            "&#",
+            "&#x;",
+            "&#xffffffff;",
+            "<p>&#0;</p>",
+            "</",
+            "<p/",
+            "<a b='>'>x",
+        ] {
+            let _ = to_text(s);
+        }
+        assert_eq!(to_text("<P>Hi<BR/>there</P>"), "\n\nHi\nthere\n\n");
     }
 }

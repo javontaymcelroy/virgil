@@ -12,11 +12,14 @@
    built-in private theme is on. */
 
 import { invoke, isTauri, convertFileSrc } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { store } from "./store.js";
 
 // Filled in by vite.config.js from the folders in themes/private/.
+const BUILTIN = typeof __VIRGIL_BUILTIN_THEMES__ === "undefined" ? [] : __VIRGIL_BUILTIN_THEMES__;
 const PRIVATE = typeof __VIRGIL_PRIVATE_THEMES__ === "undefined" ? [] : __VIRGIL_PRIVATE_THEMES__;
 const ADDED = "added:";
+const NOTES = { paper: "Warm and book-like, cream or sepia", night: "Amber accents, slate or near-black", "high-contrast": "Heavy word, strongest contrast" };
 
 const $ = id => document.getElementById(id);
 const ready = () => document.documentElement.setAttribute("data-ready", "");
@@ -25,7 +28,7 @@ const words = s => s.split("-").filter(Boolean).map(w => w[0].toUpperCase() + w.
 let current = "default", added = [], edited = [], editing = null;   // editing: id of the theme being edited, "" for a new one
 let editingBuiltin = null;                                          // or the built-in theme whose changes are being edited
 let onlyChanged = false;   // builder: write only the values changed from the original (built-in edits)
-const builtin = id => id === "default" || PRIVATE.includes(id);
+const builtin = id => id === "default" || BUILTIN.includes(id) || PRIVATE.includes(id);
 
 // The builder ("New theme"): a few pickers that become CSS custom properties. Everything else
 // (borders, hover and muted shades, the smaller and larger text sizes) is derived from them.
@@ -68,12 +71,12 @@ const DERIVED = `
   --track-fill: var(--accent);
   --thumb: var(--accent);
   --surface-sunken: color-mix(in srgb, var(--bg) 94%, var(--text));
-  --text-faint: color-mix(in srgb, var(--text-muted) 70%, var(--bg));
+  --text-faint: color-mix(in srgb, var(--text-muted) 94%, var(--bg));
   --border: color-mix(in srgb, var(--text) 12%, transparent);
   --border-strong: color-mix(in srgb, var(--text) 26%, transparent);
   --track: color-mix(in srgb, var(--text) 14%, transparent);
   --selection: color-mix(in srgb, var(--pivot) 24%, transparent);
-  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
   --text-sm: calc(var(--text-md) - 2px);
   --text-lg: calc(var(--text-md) + 5px);
   --text-xl: calc(var(--text-md) + 13px);
@@ -81,6 +84,7 @@ const DERIVED = `
   --radius-sm: calc(var(--radius) * 2 / 3);`;
 
 function href(id) {
+  if (BUILTIN.includes(id)) return `/builtin/${id}/theme.css`;
   if (PRIVATE.includes(id)) return `/private/${id}/theme.css`;
   if (id.startsWith(ADDED)) return `${convertFileSrc(id.slice(ADDED.length) + ".css", "vtheme")}?v=${Date.now()}`;
   return null;
@@ -119,6 +123,7 @@ function render() {
   const list = $("themeList"); list.textContent = "";
   const entries = [
     ["default", "Default", "Light and dark, follows macOS"],
+    ...BUILTIN.map(n => [n, words(n), NOTES[n] || "Built in"]),
     ...PRIVATE.map(n => [n, words(n), "Private, built into your copy"]),
     ...added.map(n => [ADDED + n, words(n), "Your theme"]),
   ];
@@ -145,7 +150,7 @@ function render() {
   }
 }
 
-function action(text, label, onClick) {
+export function action(text, label, onClick) {
   const b = document.createElement("button");
   b.type = "button"; b.className = "theme-action"; b.textContent = text; b.setAttribute("aria-label", label);
   b.addEventListener("click", onClick);
@@ -153,11 +158,11 @@ function action(text, label, onClick) {
 }
 
 // Delete and Reset take two clicks: the first turns the button into "Delete?" for a few seconds.
-function confirmButton(text, label, onConfirm) {
+export function confirmButton(text, label, onConfirm) {
   const b = action(text, label, () => {
     if (!b.classList.contains("confirm")) {
-      b.classList.add("confirm"); b.textContent = `${text}?`;
-      setTimeout(() => { b.classList.remove("confirm"); b.textContent = text }, 3000);
+      b.classList.add("confirm"); b.textContent = `${text}?`; b.setAttribute("aria-label", `Confirm: ${label}`);
+      setTimeout(() => { b.classList.remove("confirm"); b.textContent = text; b.setAttribute("aria-label", label) }, 3000);
       return;
     }
     onConfirm();
@@ -476,15 +481,24 @@ async function remove(name, label) {
   } catch (err) { setThemeStatus(String(err), "err") }
 }
 
+/** System, light or dark, whatever macOS is set to. Every theme has a half for each. */
+function setAppearance(v) {
+  store.set("appearance", v);
+  for (const b of $("appearanceSeg").children) b.setAttribute("aria-pressed", b.dataset.v === v);
+  if (isTauri()) getCurrentWindow().setTheme(v === "system" ? null : v).catch(console.error);
+}
+
 export function initTheme() {
+  setAppearance(store.get("appearance", "system"));
+  $("appearanceSeg").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setAppearance(b.dataset.v) });
   const saved = store.get("theme", null);
-  const known = saved === "default" || PRIVATE.includes(saved) || (saved && saved.startsWith(ADDED) && isTauri());
+  const known = saved === "default" || BUILTIN.includes(saved) || PRIVATE.includes(saved) || (saved && saved.startsWith(ADDED) && isTauri());
   current = known ? saved : PRIVATE[0] || "default";
   apply(current);
   setTimeout(ready, 1500); // never stay hidden if a theme is slow to load
   render();
   if (isTauri()) {
-    refresh().then(() => { if (edited.includes(current)) apply(current) });
+    refresh().then(() => { if (edited.includes(current)) apply(current) }).catch(console.error);
     $("addTheme").addEventListener("click", add);
     $("newTheme").addEventListener("click", () => openEditor(null, true));
     $("customTheme").addEventListener("click", () => openEditor(null));

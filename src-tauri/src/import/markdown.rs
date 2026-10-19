@@ -3,7 +3,8 @@
 
 use pulldown_cmark::{Event, HeadingLevel, Options, Parser, Tag, TagEnd};
 
-pub fn to_text(source: &str) -> (Option<String>, String) {
+/// The title, the text, and each h1–h3 with its byte offset into the text.
+pub fn to_text(source: &str) -> (Option<String>, String, super::Found) {
     let options = Options::ENABLE_YAML_STYLE_METADATA_BLOCKS
         | Options::ENABLE_PLUSES_DELIMITED_METADATA_BLOCKS
         | Options::ENABLE_TABLES
@@ -15,18 +16,25 @@ pub fn to_text(source: &str) -> (Option<String>, String) {
     let mut title: Option<String> = None;
     let mut in_title = false;
     let mut hidden = 0usize; // inside front matter or an image
+    let mut headings = Vec::new();
+    let mut heading_at: Option<usize> = None;
 
     for event in Parser::new_ext(source, options) {
         match event {
             Event::Start(Tag::MetadataBlock(_) | Tag::Image { .. }) => hidden += 1,
             Event::End(TagEnd::MetadataBlock(_) | TagEnd::Image) => hidden -= 1,
             _ if hidden > 0 => {}
-            Event::Start(Tag::Heading {
-                level: HeadingLevel::H1,
-                ..
-            }) if title.is_none() => {
-                in_title = true;
-                title = Some(String::new());
+            Event::Start(Tag::Heading { level, .. }) => {
+                if matches!(
+                    level,
+                    HeadingLevel::H1 | HeadingLevel::H2 | HeadingLevel::H3
+                ) {
+                    heading_at = Some(out.len());
+                }
+                if level == HeadingLevel::H1 && title.is_none() {
+                    in_title = true;
+                    title = Some(String::new());
+                }
             }
             Event::Text(t) | Event::Code(t) => {
                 out.push_str(&t);
@@ -37,6 +45,9 @@ pub fn to_text(source: &str) -> (Option<String>, String) {
             Event::SoftBreak | Event::HardBreak => out.push(' '),
             Event::End(TagEnd::Heading(_)) => {
                 in_title = false;
+                if let Some(at) = heading_at.take() {
+                    headings.push((out[at..].trim().to_string(), at));
+                }
                 out.push_str("\n\n");
             }
             Event::End(
@@ -53,7 +64,7 @@ pub fn to_text(source: &str) -> (Option<String>, String) {
             _ => {}
         }
     }
-    (title, out)
+    (title, out, headings)
 }
 
 #[cfg(test)]
@@ -63,8 +74,12 @@ mod tests {
     #[test]
     fn strips_syntax_and_takes_first_h1_as_title() {
         let md = "---\nlayout: post\n---\n\n# A *Good* Title\n\nSome **bold** and `code`,\nwrapped.\n\n![alt text](x.png)\n\n- one\n- two\n\n## Later\n";
-        let (title, text) = to_text(md);
+        let (title, text, headings) = to_text(md);
         assert_eq!(title.as_deref(), Some("A Good Title"));
+        assert_eq!(
+            headings.iter().map(|h| h.0.as_str()).collect::<Vec<_>>(),
+            ["A Good Title", "Later"]
+        );
         let paras: Vec<&str> = text
             .split("\n\n")
             .map(str::trim)

@@ -7,9 +7,8 @@
      liveWpm()      // pace to show on the stage while playing
    }
 
-   Phase 1 has one pacer: a WPM timer. Voice (phase 2) adds an audio pacer with the same shape
-   that plays a provider's audio and follows its playback position through the word timings
-   (see src/voice/), so the reader itself doesn't change when voice arrives. */
+   Two pacers exist: this WPM timer, and the speech pacer (./speechPacer.js) that reads aloud
+   with the Mac's voices and follows their word boundaries, so the reader itself never changes. */
 
 import { delayFor, rampedWpm } from "./text.js";
 

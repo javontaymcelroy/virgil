@@ -9,7 +9,7 @@ mod html;
 mod markdown;
 mod pdf;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 /// Extensions the Open panel offers and drag-and-drop accepts.
@@ -23,6 +23,35 @@ pub struct Document {
     pub text: String,
     /// The file name, shown under the title.
     pub source: String,
+    /// Chapter starts, for formats that have headings (EPUB, Markdown).
+    pub headings: Vec<Heading>,
+}
+
+/// A heading and the index of its first word in `text` (words are whitespace-separated, the
+/// same way the page tokenizes), so the reader can jump to it.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Heading {
+    pub title: String,
+    pub word: usize,
+}
+
+const MAX_HEADINGS: usize = 500;
+
+/// What a converter reports: a heading's text and its byte offset into the converted text.
+pub type Found = Vec<(String, usize)>;
+
+/// Turns `(title, byte offset)` pairs from a converter into word-indexed headings. Only the
+/// word count matters, so `tidy`'s whitespace changes don't move them.
+fn headings_at(text: &str, found: Vec<(String, usize)>) -> Vec<Heading> {
+    found
+        .into_iter()
+        .filter(|(t, _)| !t.trim().is_empty())
+        .take(MAX_HEADINGS)
+        .map(|(title, at)| Heading {
+            title: title.split_whitespace().collect::<Vec<_>>().join(" "),
+            word: text[..at].split_whitespace().count(),
+        })
+        .collect()
 }
 
 pub fn is_supported(path: &Path) -> bool {
@@ -53,12 +82,16 @@ pub fn import_path(path: &Path) -> Result<Document, String> {
     }
     let read = || std::fs::read(path).map_err(|e| format!("Couldn't read {name}: {e}."));
 
-    let (title, text) = match ext.as_str() {
-        "md" | "markdown" => markdown::to_text(&decode(&read()?)),
-        "pdf" => (None, pdf::to_text(&read()?)?),
+    let (title, text, found) = match ext.as_str() {
+        "md" | "markdown" => {
+            let (title, text, found) = markdown::to_text(&decode(&read()?));
+            (title, text, found)
+        }
+        "pdf" => (None, pdf::to_text(&read()?)?, vec![]),
         "epub" => epub::to_text(path)?,
-        _ => (None, decode(&read()?)),
+        _ => (None, decode(&read()?), vec![]),
     };
+    let headings = headings_at(&text, found);
 
     let text = tidy(&text);
     if text.split_whitespace().next().is_none() {
@@ -72,6 +105,7 @@ pub fn import_path(path: &Path) -> Result<Document, String> {
         title,
         text,
         source: name,
+        headings,
     })
 }
 
@@ -215,5 +249,29 @@ mod tests {
         let later = doc.text.find("Now this is the point.").unwrap();
         assert!(first < later);
         assert!(!doc.text.contains('<'), "{}", doc.text);
+    }
+
+    #[test]
+    fn headings_point_at_their_first_word() {
+        let doc = import_path(&fixture("sample.md")).unwrap();
+        let words: Vec<&str> = doc.text.split_whitespace().collect();
+        assert!(!doc.headings.is_empty(), "{:?}", doc.headings);
+        for h in &doc.headings {
+            let first = h.title.split_whitespace().next().unwrap();
+            assert_eq!(words[h.word], first, "{h:?}");
+        }
+        let doc = import_path(&fixture("sample.epub")).unwrap();
+        let words: Vec<&str> = doc.text.split_whitespace().collect();
+        for h in &doc.headings {
+            assert_eq!(
+                words[h.word],
+                h.title.split_whitespace().next().unwrap(),
+                "{h:?}"
+            );
+        }
+        assert!(import_path(&fixture("sample.txt"))
+            .unwrap()
+            .headings
+            .is_empty());
     }
 }

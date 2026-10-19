@@ -44,6 +44,13 @@ export function delayFor(group, wpm, restAtPunctuation) {
   return base * m;
 }
 
+/** Index of the first word of every paragraph. */
+export function paragraphStarts(tokens) {
+  const starts = [0];
+  tokens.forEach((t, i) => { if (t.para && i + 1 < tokens.length) starts.push(i + 1) });
+  return starts;
+}
+
 /** Index of the sentence containing word i. */
 export function sentenceIndex(starts, i) {
   let s = 0;
@@ -68,4 +75,19 @@ export function formatDuration(ms) {
 export function titleFor(text) {
   const first = text.trim().split(/\s+/).slice(0, 5).join(" ");
   return first ? first + "…" : "Pasted text";
+}
+
+/** Cuts the text into runs of whole paragraphs, `paras` at a time. A paragraph longer than
+ *  `maxWords` is closed at the next sentence end instead, so a wall of text is still read in
+ *  pieces; one with no sentence ends at all is cut at twice that. */
+export function chunkParagraphs(tokens, { paras = 4, maxWords = 400 } = {}) {
+  const chunks = [];
+  let from = 0, count = 0;
+  for (let i = 0; i < tokens.length; i++) {
+    const t = tokens[i], n = i + 1 - from;
+    if (t.para) count++;
+    if ((t.para && count >= paras) || (t.end && n >= maxWords) || n >= 2 * maxWords) { chunks.push({ from, to: i + 1 }); from = i + 1; count = 0 }
+  }
+  if (from < tokens.length) chunks.push({ from, to: tokens.length });
+  return chunks;
 }
