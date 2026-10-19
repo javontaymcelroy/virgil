@@ -2,14 +2,14 @@
    list, a change while reading. */
 import { test, expect, boot, SHORT, drop, calls } from "./helpers.js";
 
-test("seeking after the text finished clears Finished and offers Read, not Again", async ({ page }) => {
+test("seeking after the text finished clears Finished and offers Begin reading, not Again", async ({ page }) => {
   await boot(page, { storage: { wpm: 1000 } });
   await drop(page, SHORT);
   await page.keyboard.press("Space");
   await expect(page.locator("#hint")).toHaveText("Finished.", { timeout: 10000 });
   await page.locator("#scrub").fill("0");
   await expect(page.locator("#hint")).not.toHaveText("Finished.");
-  await expect(page.locator("#play")).toHaveText("Read");
+  await expect(page.locator("#play")).toHaveText("Begin reading");
 });
 
 test("a saved voice pick survives the voice list arriving late", async ({ page }) => {

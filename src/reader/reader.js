@@ -114,7 +114,7 @@ export function createReader() {
     if (!playing) return;
     playing = false; clearTimeout(seekTimer); pacer.stop(); releaseScreen();
     pausedAt = finished ? -1 : idx;
-    $("play").textContent = finished ? "Again" : "Read";
+    $("play").textContent = finished ? "Again" : "Resume";
     $("hint").textContent = finished ? "Finished." : "Paused.";
     logSession(); savePos(); updateMeta();
   }
@@ -127,7 +127,7 @@ export function createReader() {
     clearTimeout(seekTimer); pausedAt = -1;
     if (!playing) {
       render();
-      if ($("play").textContent === "Again") { $("play").textContent = "Read"; $("hint").textContent = "Paused." }
+      if ($("play").textContent === "Again") { $("play").textContent = "Begin reading"; $("hint").textContent = "Paused." }
     } else if (pacer === speech && !settled) {
       pacer.stop(); render();
       seekTimer = setTimeout(() => { if (playing) pacer.start(idx) }, 150);
@@ -251,7 +251,7 @@ export function createReader() {
     $("docTitle").textContent = title;
     $("source").textContent = doc.source || ""; $("source").hidden = !doc.source;
     $("input").value = doc.text;
-    $("play").textContent = "Read";
+    $("play").textContent = "Begin reading";
     $("hint").textContent = idx ? "Resuming where you left off. Press Space." : "Click the reader or press Space to begin.";
     // A book too big for local storage isn't kept (see `kept`): the previous one opens next launch instead.
     kept = !remember || rememberDoc(doc);
@@ -302,7 +302,8 @@ export function createReader() {
       if (fn) { e.preventDefault(); fn() }
     });
     document.addEventListener("visibilitychange", () => { if (document.hidden) stop(false); else if (playing) lockScreen() });
-    window.addEventListener("blur", () => stop(false));   // another app came to the front
+    // Another app came to the front: pause, unless the reader is popped out to run beside it.
+    window.addEventListener("blur", () => { if (!document.body.classList.contains("popped")) stop(false) });
     setChunk(settings.chunk); setWpm(settings.wpm); renderRecord();
   }
 

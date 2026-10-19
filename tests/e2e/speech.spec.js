@@ -19,7 +19,7 @@ test("a voice that never starts is reported and playback stops", async ({ page }
   await boot(page, { ...VOICE, knobs: { __speechSilent: true } });
   await drop(page, SHORT);
   await page.keyboard.press("Space");
-  await expect(page.locator("#play")).toHaveText("Read", { timeout: 8000 });
+  await expect(page.locator("#play")).toHaveText("Resume", { timeout: 8000 });
   await expect(page.locator("#status")).toHaveText(/voice/i);
 });
 
@@ -27,7 +27,7 @@ test("a voice that fails to start is reported", async ({ page }) => {
   await boot(page, { ...VOICE, knobs: { __speechFail: true } });
   await drop(page, SHORT);
   await page.keyboard.press("Space");
-  await expect(page.locator("#play")).toHaveText("Read");
+  await expect(page.locator("#play")).toHaveText("Resume");
   await expect(page.locator("#status")).toHaveText(/could not start/i);
 });
 

@@ -60,6 +60,9 @@
       <div class="drop-hint" aria-hidden="true">Drop to read</div>
     </div>
     <p class="hint" id="hint" aria-live="polite">Click the reader or press Space to begin.</p>
+    <button class="btn btn--sm btn--icon popout" id="popout" type="button" aria-pressed="false" aria-label="Pop out the reader" title="Pop out: a small window that stays on top (Esc pops it back in)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4l-8 8"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>
+    </button>
   </section>
   <p class="status" id="status" role="status"></p>
 
@@ -68,7 +71,7 @@
   <section class="controls" aria-label="Controls">
     <div class="transport">
       <div class="side"><button class="btn" id="back" type="button" title="Previous sentence (←)" aria-keyshortcuts="ArrowLeft">‹ Sentence</button></div>
-      <button class="btn btn--primary btn--lg" id="play" type="button" aria-keyshortcuts="Space">Read</button>
+      <button class="btn btn--primary btn--lg" id="play" type="button" aria-keyshortcuts="Space">Begin reading</button>
       <div class="side right"><button class="btn" id="fwd" type="button" title="Next sentence (→)" aria-keyshortcuts="ArrowRight">Sentence ›</button></div>
     </div>
 

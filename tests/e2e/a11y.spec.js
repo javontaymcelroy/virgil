@@ -60,6 +60,9 @@ for (const scheme of ["light", "dark"]) {
     await boot(page, { knobs: { __voices: [{ id: "x", name: "Samantha", lang: "en-US", quality: "default" }] } });
     await page.locator("#stage").focus();
     await page.keyboard.press("Tab");
+    await expect(page.locator("#popout")).toBeFocused();
+    expect(await contrast(page, "#popout", "ring"), "pop-out ring").toBeGreaterThanOrEqual(3);
+    await page.keyboard.press("Tab");
     await expect(page.locator("#back")).toBeFocused();
     expect(await contrast(page, "#back", "ring"), "focus ring").toBeGreaterThanOrEqual(3);
     expect(await contrast(page, "#voiceNote"), "voice note").toBeGreaterThanOrEqual(4.5);
@@ -136,4 +139,14 @@ test("confirm labels fit their action column and long names wrap inside a row", 
   await page.keyboard.press("Meta+,");
   await page.getByRole("button", { name: "Delete midnight" }).click();
   expect(await fits("#themeList .theme-action.confirm"), "Delete? fits").toBe(true);
+});
+
+test("axe: popped out", async ({ page }) => {
+  await page.setViewportSize({ width: 520, height: 300 });
+  await boot(page);
+  await drop(page, SHORT);
+  await page.locator("#popout").click();
+  await expect(page.locator("body")).toHaveClass(/popped/);
+  const r = await axe(page);
+  expect(report(r)).toBe("");
 });

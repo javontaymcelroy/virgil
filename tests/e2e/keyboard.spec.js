@@ -8,14 +8,14 @@ test("Space on a focused checkbox toggles the checkbox, not playback", async ({ 
   await box.focus();
   await page.keyboard.press("Space");
   await expect(box).not.toBeChecked();
-  await expect(page.locator("#play")).toHaveText("Read");
+  await expect(page.locator("#play")).toHaveText("Begin reading");
 });
 
 test("Space on a focused button activates that button", async ({ page }) => {
   await page.locator("#fwd").focus();
   await page.keyboard.press("Space");
   await expect(page.locator("#pos")).toHaveText("Word 6 of 10");
-  await expect(page.locator("#play")).toHaveText("Read");
+  await expect(page.locator("#play")).toHaveText("Begin reading");
 });
 
 test("arrow keys on the position slider step one word, not one sentence", async ({ page }) => {

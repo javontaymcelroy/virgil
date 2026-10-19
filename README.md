@@ -43,19 +43,20 @@ Coming next: read-aloud with word-synced voices (macOS system voices, a local Ko
 ## How to use
 
 1. **Add a text.** Click **Add text** (⌘T) and paste into the box, then click **Read this text**. Or click **Open file…** (⌘O), or drop a `.txt`, `.md`, `.pdf` or `.epub` file onto the window. Pressing ⌘V anywhere outside a text field reads whatever is on the clipboard.
-2. **Read.** Press **Space** (or click the reader) to start and pause. Keep your eyes on the colored letter; the guides above and below mark where it lands.
+2. **Read.** Click **Begin reading**, press **Space** or click the reader to start, and the same to pause. Keep your eyes on the colored letter; the guides above and below mark where it lands.
 3. **Set your pace.** Drag **Pace**, or press ↑ ↓ while reading. A good start is 250–350 wpm; raise it by 25 at a time when a pace feels easy.
 4. **Find your place.** The passage around the word follows along beneath the reader; click any word in it to jump there. ← → jump a sentence, ⇧← ⇧→ a paragraph, the **Chapter** menu (books and Markdown) a chapter, and the scrubber moves anywhere. Resuming after a pause backs up to the start of the sentence.
 5. **Tune the rhythm.** **Words per flash** shows one, two or three words at once. **Rest at punctuation** pauses briefly at commas, full stops and paragraph breaks; **Ease into pace** starts slower and builds to your pace.
 6. **Read aloud.** Tick **Read aloud** under **Voice** and the Mac reads to you at your pace while the reader follows each word. **Hear it** previews the chosen voice. The compact voices macOS ships with sound robotic; download a Premium one (System Settings › Accessibility › Read & Speak › System Voice › Manage Voices) and it appears in the menu as soon as it is installed.
 7. **Pick up later.** Virgil reopens the last text where you stopped. Click the book icon (⌘L) to open the **Library** on the left: the five most recent texts are listed under **Recent**, each with how far you got. Sessions over twenty words are added to **Your reading**, below the controls, where **Clear history** empties the list.
 8. **Keep a library.** **Save to library** (⌘S), or **Save** on a recent row, puts a text on the shelf for good, however long it is; **Open file…** in the Library opens a file and shelves it in one go. Click a row to pick it up again, or **Remove** (twice) to take it off. The library lives in Virgil's app data on this Mac.
+9. **Pop it out.** The arrow in the reader's corner shrinks Virgil to a small window that stays on top of your other windows and keeps reading while you work in them. Esc, or the arrow again, brings the full window back.
 
 ## Keyboard
 
 | Key | Action |
 | --- | --- |
-| Space | Read / pause |
+| Space | Begin reading, pause, resume |
 | ← → | Previous / next sentence |
 | ⇧← ⇧→ | Previous / next paragraph |
 | ↑ ↓ | Pace ±25 wpm |

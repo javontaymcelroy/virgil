@@ -18,6 +18,7 @@ h1, h2, p { margin: 0; }
 /* Title bar: the window's own is hidden, so this transparent strip is the drag handle and
    keeps content clear of the traffic lights. Content scrolls beneath it. */
 .titlebar { position: fixed; top: 0; left: 0; right: 0; height: var(--titlebar-h); z-index: 20; }
+html { scroll-padding-top: calc(var(--titlebar-h) + var(--space-3)); }   /* scrolled-to targets clear the title bar */
 
 /* App: the library drawer on the left, the reader column, and the "Add a text" and Settings drawers on the right */
 .app { display: flex; align-items: flex-start; min-height: 100vh; }
@@ -58,6 +59,18 @@ h1, h2, p { margin: 0; }
 .lectern { display: grid; background: var(--surface-fill); border: var(--border-width) solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
 .lectern > .stage, .lectern > .hint { grid-area: 1 / 1; }
 .lectern { --hint-h: calc(var(--text-sm) * 1.5 + var(--space-4)); }
+/* Above the stage, which is positioned and would otherwise paint over it. */
+.lectern > .popout { grid-area: 1 / 1; position: relative; z-index: 1; justify-self: end; align-self: start; margin: var(--space-3); color: var(--text-muted); border-color: transparent; background: none; }
+.lectern > .popout:hover, .lectern > .popout[aria-pressed="true"] { color: var(--text); border-color: var(--border); }
+/* Popped out: only the reader card, filling a small window that stays on top. */
+.popped .wrap > :not(.lectern), .popped .drawer { display: none; }
+.popped .wrap { padding: var(--titlebar-h) var(--space-3) var(--space-3); min-height: 100vh; justify-content: center; }
+.popped .lectern { border-radius: var(--radius-sm); }
+.popped .stage { height: calc(100vh - var(--titlebar-h) - var(--space-3) * 2 - 2 * var(--border-width)); }
+.popped .word { font-size: min(var(--word-size), 24vh); }
+.popped .word.chunk { font-size: min(var(--word-size-chunk), 18vh); }
+.popped .guide { height: var(--space-2); }
+@media (max-height: 279px) { .popped .stage-meta { display: none; } }   /* too short for the pace line */
 .stage {
   position: relative;
   height: calc(var(--stage-h) + var(--hint-h));

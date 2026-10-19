@@ -5,9 +5,11 @@ import { wireImport, setStatus } from "./import.js";
 import { SAMPLE } from "./sample.js";
 import { store, docKey } from "./store.js";
 import { wirePanel } from "./panel.js";
+import { wirePopout } from "./popout.js";
 
 initTheme();
 wirePanel();
+wirePopout();
 const reader = createReader();
 
 // Files and pasted text are kept so they reopen where you left off.

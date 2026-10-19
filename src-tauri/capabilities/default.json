@@ -3,5 +3,12 @@
   "identifier": "default",
   "description": "The main window. App commands are allowed by default; files are read in Rust, so no fs or dialog permissions are granted to the page.",
   "windows": ["main"],
-  "permissions": ["core:default", "core:window:allow-start-dragging", "core:window:allow-set-theme"]
+  "permissions": [
+    "core:default",
+    "core:window:allow-start-dragging",
+    "core:window:allow-set-theme",
+    "core:window:allow-set-size",
+    "core:window:allow-set-min-size",
+    "core:window:allow-set-always-on-top"
+  ]
 }

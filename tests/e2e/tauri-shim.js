@@ -53,6 +53,9 @@
     },
     speech_stop: () => { stopSpeech(); return null },
     "plugin:window|set_theme": () => null,
+    "plugin:window|set_size": () => null,
+    "plugin:window|set_min_size": () => null,
+    "plugin:window|set_always_on_top": () => null,
     list_themes: () => window.__themes,
     open_document: () => window.__doc,
     read_theme: () => ":root { --bg: #111; }",
@@ -84,7 +87,7 @@
   window.__emit = emit;
   window.__TAURI_INTERNALS__ = {
     invoke(cmd, args = {}) {
-      calls.push({ cmd, args });
+      calls.push({ cmd, args: JSON.parse(JSON.stringify(args)) });   // as the IPC would see them
       const route = routes[cmd];
       if (!route) return Promise.reject(`no such command: ${cmd}`);
       try { return Promise.resolve(route(args)) } catch (e) { return Promise.reject(e) }

@@ -71,3 +71,17 @@ test("the word band is centred on the reader card, whatever sits below it", asyn
   });
   expect(off).toBeLessThan(1);
 });
+
+for (const scheme of ["light", "dark"]) {
+  test(`popped out, ${scheme}`, async ({ page }) => {
+    await page.setViewportSize({ width: 520, height: 300 });
+    await page.emulateMedia({ colorScheme: scheme });
+    await boot(page);
+    await drop(page, SHORT);
+    await page.locator("#popout").click();
+    await expect(page.locator("body")).toHaveClass(/popped/);
+    await settle(page);
+    await page.screenshot({ path: `${DIR}/popped-${scheme}.png` });
+    expect(await page.evaluate(() => document.documentElement.scrollHeight - document.documentElement.clientHeight)).toBeLessThanOrEqual(0);
+  });
+}

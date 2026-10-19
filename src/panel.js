@@ -42,6 +42,7 @@ function close() {
 }
 
 export const openPanel = (name = "text") => { if (current !== name) show(name) };
+export const closePanel = () => { if (current) show(null) };
 
 export function wirePanel() {
   const saved = store.get("panel", null);

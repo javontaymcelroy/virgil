@@ -107,7 +107,7 @@ test("reading pauses when the window loses focus", async ({ page }) => {
   await page.keyboard.press("Space");
   await expect(page.locator("#play")).toHaveText("Pause");
   await page.evaluate(() => window.dispatchEvent(new Event("blur")));
-  await expect(page.locator("#play")).toHaveText("Read");
+  await expect(page.locator("#play")).toHaveText("Resume");
   await expect(page.locator("#hint")).toHaveText("Paused.");
 });
 
@@ -252,4 +252,46 @@ test("Open file in the Library reads the file and puts it on the shelf in one go
   await page.locator("#openToLibrary").click();
   await expect(page.locator("#status")).toHaveText("blank.txt has no readable words.");
   await expect(page.locator("#library .theme-row")).toHaveCount(1);
+});
+
+test("Pop out shrinks the window to the reader, stays on top, keeps reading on blur, and Esc pops back in", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await boot(page);
+  await drop(page, SHORT);
+  const pop = page.locator("#popout");
+  await pop.click();
+  await expect(page.locator("body")).toHaveClass(/popped/);
+  await expect(pop).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".masthead")).toBeHidden();
+  await expect(page.locator("#play")).toBeHidden();
+  await expect(page.locator("#word")).toBeVisible();
+  expect((await calls(page, "plugin:window|set_always_on_top")).at(-1).args.value).toBe(true);
+  expect((await calls(page, "plugin:window|set_size")).at(-1).args.value).toEqual({ Logical: { width: 520, height: 300 } });
+  // Reading carries on when another app comes to the front.
+  await page.keyboard.press("Space");
+  await expect(page.locator("#hint")).not.toHaveText("Paused.");
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await expect(page.locator("#hint")).not.toHaveText("Paused.");
+  await page.keyboard.press("Space");
+  await page.keyboard.press("Escape");
+  await expect(page.locator("body")).not.toHaveClass(/popped/);
+  await expect(page.locator(".masthead")).toBeVisible();
+  expect((await calls(page, "plugin:window|set_always_on_top")).at(-1).args.value).toBe(false);
+  expect((await calls(page, "plugin:window|set_size")).at(-1).args.value).toEqual({ Logical: { width: 1280, height: 900 } });
+});
+
+test("popping out with a panel open closes it, so the small window is neither dimmed nor inert", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await boot(page);
+  await drop(page, SHORT);
+  await page.keyboard.press("Meta+l");
+  await expect(page.locator("#libraryPanel")).toHaveClass(/is-open/);
+  await page.locator("#popout").click();
+  await expect(page.locator("body")).toHaveClass(/popped/);
+  await page.setViewportSize({ width: 520, height: 300 });   // the window shrinks
+  await expect(page.locator(".wrap")).not.toHaveAttribute("inert", "");
+  await expect(page.locator("#libraryPanel")).not.toHaveClass(/is-open/);
+  expect(await page.evaluate(() => getComputedStyle(document.querySelector(".wrap")).opacity)).toBe("1");
+  await page.keyboard.press("Space");
+  await expect(page.locator("#hint")).not.toHaveText(/Paused|begin/);
 });
