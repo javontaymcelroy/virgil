@@ -31,16 +31,17 @@ for (const width of [1280, 980, 640]) {
 }
 
 for (const theme of ["paper", "night", "high-contrast"]) {
-  test(`theme ${theme}`, async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 900 });
-    await boot(page, { storage: { theme, recent: [SHORT] } });
-    await drop(page, { ...SHORT, headings: [{ title: "Opening", word: 0 }, { title: "Second", word: 5 }] });
-    await settle(page);
-    await page.screenshot({ path: `${DIR}/theme-${theme}.png` });
-    await page.keyboard.press("Meta+,");
-    await settle(page);
-    await page.screenshot({ path: `${DIR}/theme-${theme}-settings.png` });
-  });
+  for (const scheme of ["light", "dark"]) {
+    test(`theme ${theme} ${scheme}`, async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.emulateMedia({ colorScheme: scheme });
+      await boot(page, { storage: { theme, recent: [SHORT] } });
+      await drop(page, { ...SHORT, headings: [{ title: "Opening", word: 0 }, { title: "Second", word: 5 }] });
+      await page.keyboard.press("Meta+,");
+      await settle(page);
+      await page.screenshot({ path: `${DIR}/theme-${theme}-${scheme}.png` });
+    });
+  }
 }
 
 test("Add text with recent texts", async ({ page }) => {

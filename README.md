@@ -9,7 +9,7 @@ An open-source RSVP speed reader for macOS. Virgil shows a text one word at a ti
 - **Read aloud** with the Mac's own voices, the reader following each spoken word; download a Premium voice in System Settings for a natural one.
 - The passage around the current word stays in view; click a word there to jump to it. Books and Markdown get a chapter menu.
 - Virgil keeps your last five texts and where you stopped in each, plus a short history of your sessions.
-- Four looks (Default, Paper, Night, High contrast), a theme builder, and a System / Light / Dark switch.
+- Four looks (Default, Paper, Night, High contrast), each light and dark, a theme builder, and a System / Light / Dark switch.
 - Native and lightweight: built with [Tauri](https://tauri.app).
 
 <table>
@@ -80,7 +80,7 @@ Tests: `npm test` (reader engine) and `cargo test` in `src-tauri/` (file import)
 
 ## Themes
 
-Every color, font and size comes from CSS custom properties in [`themes/default/theme.css`](themes/default/theme.css); the app's stylesheet hard-codes none of them. Three more ship with the app in [`themes/builtin/`](themes/builtin/): **Paper** (warm, always light), **Night** (always dark, amber accents) and **High contrast**. **Settings → Appearance** picks System, Light or Dark for the Default theme. To use your own look, create `themes/private/<name>/theme.css`. It loads on top of the default, so it only needs the properties it changes, and it can add its own rules (and `@import` web fonts). `themes/private/` is gitignored: your theme is in your local builds, used automatically, and switched on and off under **Settings → Themes**, but it is never committed or included in public releases.
+Every color, font and size comes from CSS custom properties in [`themes/default/theme.css`](themes/default/theme.css); the app's stylesheet hard-codes none of them. Three more ship with the app in [`themes/builtin/`](themes/builtin/): **Paper** (cream by day, sepia at night), **Night** (slate by day, near-black with amber at night) and **High contrast** (black on white, then white on black). Every theme has a light and a dark half; **Settings → Appearance** picks System, Light or Dark. To use your own look, create `themes/private/<name>/theme.css`. It loads on top of the default, so it only needs the properties it changes, and it can add its own rules (and `@import` web fonts). `themes/private/` is gitignored: your theme is in your local builds, used automatically, and switched on and off under **Settings → Themes**, but it is never committed or included in public releases.
 
 You can also make themes without rebuilding, under **Settings → Themes**:
 

@@ -124,4 +124,8 @@ test("the built-in themes are offered and apply", async ({ page }) => {
   await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).backgroundColor)).not.toBe(before);
   await page.reload();
   await expect(page.locator("#theme-override")).toHaveAttribute("href", "/builtin/night/theme.css");
+  // Every built-in theme has a half for each appearance.
+  const light = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).backgroundColor)).not.toBe(light);
 });

@@ -1,6 +1,7 @@
-/* High contrast: black on white, heavy word, strong borders. Light in both appearances. */
+/* High contrast: heavy word, strong borders. Black on white by day, white on black at night;
+   follows Appearance. */
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
 
   --bg: #ffffff;
   --surface: #ffffff;
@@ -16,7 +17,7 @@
   --accent-hover: #222222;
   --on-accent: #ffffff;
   --pivot: #c00000;
-  --focus-ring: 0 0 0 2px #ffffff, 0 0 0 4px #000000;
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
   --selection: rgba(192, 0, 0, 0.25);
 
   --ok: #006b2f;
@@ -31,4 +32,33 @@
   --border-width: 2px;
   --shadow: none;
   --shadow-overlay: -8px 0 32px rgba(0, 0, 0, 0.3);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000;
+    --surface: #000000;
+    --surface-sunken: #141414;
+    --border: rgba(255, 255, 255, 0.6);
+    --border-strong: #ffffff;
+
+    --text: #ffffff;
+    --text-muted: #e6e6e6;
+    --text-faint: #d9d9d9;
+
+    --accent: #ffffff;
+    --accent-hover: #dddddd;
+    --on-accent: #000000;
+    --pivot: #ffd60a;
+    --selection: rgba(255, 214, 10, 0.35);
+
+    --ok: #5fe38f;
+    --error: #ff6b6b;
+
+    --track: rgba(255, 255, 255, 0.3);
+    --track-fill: #ffffff;
+    --thumb: #ffffff;
+
+    --shadow-overlay: -8px 0 32px rgba(255, 255, 255, 0.15);
+  }
 }

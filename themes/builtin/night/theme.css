@@ -1,34 +1,63 @@
-/* Night: darker than the default's dark half, with amber accents and a lighter word, for
-   reading in a dark room. Dark in both appearances. */
+/* Night: amber accents and a lighter word. Cool slate by day, near-black in a dark room;
+   follows Appearance. */
 :root {
-  color-scheme: dark;
+  color-scheme: light dark;
 
-  --bg: #0b0c10;
-  --surface: #121318;
-  --surface-sunken: #08090c;
-  --border: rgba(220, 220, 235, 0.08);
-  --border-strong: rgba(220, 220, 235, 0.2);
+  --bg: #e9ecf1;
+  --surface: #f6f7fa;
+  --surface-sunken: #dfe3ea;
+  --border: rgba(30, 40, 60, 0.12);
+  --border-strong: rgba(30, 40, 60, 0.26);
 
-  --text: #c9c9d1;
-  --text-muted: #8c8e99;
-  --text-faint: #858792;
+  --text: #1d2230;
+  --text-muted: #5b6475;
+  --text-faint: #626b7c;
 
-  --accent: #d6b26a;
-  --accent-hover: #e6c47e;
-  --on-accent: #0b0c10;
-  --pivot: #e3a04c;
+  --accent: #8a6a2f;
+  --accent-hover: #6e541f;
+  --on-accent: #ffffff;
+  --pivot: #c2641a;
   --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
-  --selection: rgba(227, 160, 76, 0.25);
+  --selection: rgba(194, 100, 26, 0.2);
 
-  --ok: #7cc49a;
-  --error: #ff8577;
+  --ok: #2f7d5b;
+  --error: #c0352a;
 
-  --track: rgba(220, 220, 235, 0.12);
-  --track-fill: #d6b26a;
-  --thumb: #d6b26a;
+  --track: rgba(30, 40, 60, 0.14);
+  --track-fill: #8a6a2f;
+  --thumb: #8a6a2f;
 
   --word-weight: 400;
   --word-size: 52px;
   --shadow: none;
-  --shadow-overlay: -8px 0 32px rgba(0, 0, 0, 0.6);
+  --shadow-overlay: -8px 0 32px rgba(30, 40, 60, 0.18);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b0c10;
+    --surface: #121318;
+    --surface-sunken: #08090c;
+    --border: rgba(220, 220, 235, 0.08);
+    --border-strong: rgba(220, 220, 235, 0.2);
+
+    --text: #c9c9d1;
+    --text-muted: #8c8e99;
+    --text-faint: #858792;
+
+    --accent: #d6b26a;
+    --accent-hover: #e6c47e;
+    --on-accent: #0b0c10;
+    --pivot: #e3a04c;
+    --selection: rgba(227, 160, 76, 0.25);
+
+    --ok: #7cc49a;
+    --error: #ff8577;
+
+    --track: rgba(220, 220, 235, 0.12);
+    --track-fill: #d6b26a;
+    --thumb: #d6b26a;
+
+    --shadow-overlay: -8px 0 32px rgba(0, 0, 0, 0.6);
+  }
 }

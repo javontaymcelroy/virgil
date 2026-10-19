@@ -1,7 +1,7 @@
-/* Paper: warm and book-like, light in both appearances. Only the properties that change from
-   the default are set; the rest come from themes/default/theme.css. */
+/* Paper: warm and book-like. Cream by day, dark sepia at night; follows Appearance. Only the
+   properties that change from the default are set; the rest come from themes/default/theme.css. */
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
 
   --bg: #f3ecdc;
   --surface: #faf5ea;
@@ -31,4 +31,33 @@
   --word-weight: 400;
   --shadow: none;
   --shadow-overlay: -8px 0 32px rgba(70, 50, 20, 0.18);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1f1a14;
+    --surface: #28221b;
+    --surface-sunken: #171310;
+    --border: rgba(240, 225, 200, 0.1);
+    --border-strong: rgba(240, 225, 200, 0.24);
+
+    --text: #e8dfcc;
+    --text-muted: #b3a690;
+    --text-faint: #a2957f;
+
+    --accent: #d9c3a0;
+    --accent-hover: #e8d4b4;
+    --on-accent: #1f1a14;
+    --pivot: #e8784a;
+    --selection: rgba(232, 120, 74, 0.25);
+
+    --ok: #8fc9a0;
+    --error: #ff8a74;
+
+    --track: rgba(240, 225, 200, 0.14);
+    --track-fill: #d9c3a0;
+    --thumb: #d9c3a0;
+
+    --shadow-overlay: -8px 0 32px rgba(0, 0, 0, 0.5);
+  }
 }

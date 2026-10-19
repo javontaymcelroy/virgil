@@ -19,7 +19,7 @@ import { store } from "./store.js";
 const BUILTIN = typeof __VIRGIL_BUILTIN_THEMES__ === "undefined" ? [] : __VIRGIL_BUILTIN_THEMES__;
 const PRIVATE = typeof __VIRGIL_PRIVATE_THEMES__ === "undefined" ? [] : __VIRGIL_PRIVATE_THEMES__;
 const ADDED = "added:";
-const NOTES = { paper: "Warm and book-like, always light", night: "For a dark room, always dark", "high-contrast": "Black on white, heavy word" };
+const NOTES = { paper: "Warm and book-like, cream or sepia", night: "Amber accents, slate or near-black", "high-contrast": "Heavy word, strongest contrast" };
 
 const $ = id => document.getElementById(id);
 const ready = () => document.documentElement.setAttribute("data-ready", "");
@@ -481,7 +481,7 @@ async function remove(name, label) {
   } catch (err) { setThemeStatus(String(err), "err") }
 }
 
-/** System, light or dark, whatever macOS is set to. Themes that fix one (Paper, Night) win anyway. */
+/** System, light or dark, whatever macOS is set to. Every theme has a half for each. */
 function setAppearance(v) {
   store.set("appearance", v);
   for (const b of $("appearanceSeg").children) b.setAttribute("aria-pressed", b.dataset.v === v);
