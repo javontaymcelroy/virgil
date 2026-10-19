@@ -43,6 +43,7 @@
       return null;
     },
     speech_stop: () => { stopSpeech(); return null },
+    "plugin:window|set_theme": () => null,
     list_themes: () => window.__themes,
     open_document: () => window.__doc,
     read_theme: () => ":root { --bg: #111; }",

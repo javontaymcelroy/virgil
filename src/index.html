@@ -52,6 +52,10 @@
       <input type="range" id="scrub" min="0" max="100" value="0" aria-label="Position in text">
       <div class="scrub-row"><span class="label" id="pos">Word 1 of 1</span><span class="label" id="pct">0%</span></div>
     </div>
+    <div class="chapters" id="chapterRow" hidden>
+      <label class="label" for="chapters">Chapter</label>
+      <select class="select" id="chapters"></select>
+    </div>
 
     <div class="settings">
       <div class="setting">
@@ -75,11 +79,14 @@
       <div class="setting">
         <span class="label">Voice</span>
         <label class="choice"><input type="checkbox" id="optVoice"> Read aloud</label>
-        <select class="select" id="voice" aria-label="Voice"></select>
+        <div class="row row--voice">
+          <select class="select" id="voice" aria-label="Voice"></select>
+          <button class="btn" id="hearVoice" type="button" title="Hear this voice">Hear it</button>
+        </div>
         <p class="note" id="voiceNote" hidden>For a natural voice, download a Premium one in System Settings › Accessibility › Read &amp; Speak › System Voice. It appears here as soon as it's installed.</p>
       </div>
     </div>
-    <p class="keys"><kbd>Space</kbd> read · <kbd>←</kbd><kbd>→</kbd> sentence · <kbd>↑</kbd><kbd>↓</kbd> pace · <kbd>⌘O</kbd> open · <kbd>⌘T</kbd> add text · <kbd>⌘,</kbd> settings</p>
+    <p class="keys"><kbd>Space</kbd> read · <kbd>←</kbd><kbd>→</kbd> sentence · <kbd>⇧←</kbd><kbd>⇧→</kbd> paragraph · <kbd>↑</kbd><kbd>↓</kbd> pace · <kbd>⌘O</kbd> open · <kbd>⌘T</kbd> add text · <kbd>⌘,</kbd> settings</p>
   </section>
 
   <section class="card panel" aria-labelledby="recH">
@@ -91,6 +98,7 @@
     </div>
     <ul class="log" id="log"></ul>
     <p class="status" id="logEmpty">Sessions over twenty words are kept here, on this Mac only.</p>
+    <div class="row"><button class="btn btn--sm btn--ghost" id="clearLog" type="button" hidden>Clear history</button></div>
   </section>
 
   <p class="footnote">Comprehension tends to slip as pace climbs, and above roughly 400 wpm most readers stop sounding words out in their head. Pause often; the passage beneath the reader follows along, and clicking a word there jumps to it.</p>
@@ -104,6 +112,10 @@
       <button class="drawer-close" type="button" aria-label="Close panel" title="Close (Esc)">×</button>
     </div>
     <p>Paste anything, open a .txt, .md, .pdf or .epub file, or drop one on the window. Files are read on your Mac and never uploaded.</p>
+    <section class="drawer-section" id="recentWrap" aria-labelledby="recentH" hidden>
+      <h3 class="label" id="recentH">Recent</h3>
+      <ul class="theme-list recent" id="recent"></ul>
+    </section>
     <label class="label" for="input">Text to read</label>
     <textarea id="input" class="textarea" placeholder="Paste text here…" spellcheck="false"></textarea>
     <div class="row">
@@ -120,6 +132,14 @@
       <h2 id="settingsH">Settings</h2>
       <button class="drawer-close" type="button" aria-label="Close panel" title="Close (Esc)">×</button>
     </div>
+    <section class="drawer-section" aria-labelledby="appearanceH">
+      <h3 class="label" id="appearanceH">Appearance</h3>
+      <div class="seg" id="appearanceSeg" role="group" aria-labelledby="appearanceH">
+        <button class="btn btn--sm" type="button" data-v="system" aria-pressed="true">System</button>
+        <button class="btn btn--sm" type="button" data-v="light" aria-pressed="false">Light</button>
+        <button class="btn btn--sm" type="button" data-v="dark" aria-pressed="false">Dark</button>
+      </div>
+    </section>
     <section class="drawer-section" aria-labelledby="themesH">
       <h3 class="label" id="themesH">Themes</h3>
       <div class="theme-list" id="themeList" role="group" aria-labelledby="themesH"></div>

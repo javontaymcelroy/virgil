@@ -1,12 +1,12 @@
 /* The RSVP reader: owns the text, the position and everything on screen. Timing is delegated
    to a pacer (./pacer.js), so a voice can drive the same reader later. */
 
-import { tokenize, orp, sentenceIndex, sentenceJump, formatDuration } from "./text.js";
+import { tokenize, orp, sentenceIndex, sentenceJump, paragraphStarts, formatDuration } from "./text.js";
 import { createTimerPacer } from "./pacer.js";
 import { createSpeechPacer, systemVoices, BASE_WPM } from "./speechPacer.js";
 import { systemSpeech } from "../voice/systemSpeech.js";
 import { setStatus } from "../import.js";
-import { store } from "../store.js";
+import { store, docKey } from "../store.js";
 
 const $ = id => document.getElementById(id);
 const MIN_WPM = 100, MAX_WPM = 1000;
@@ -25,7 +25,8 @@ export function createReader() {
   const timer = createTimerPacer(face), mac = systemSpeech(), speech = createSpeechPacer(face, mac);
   let pacer = timer;
 
-  let starts = [0], idx = 0, playing = false, title = "", session = null, wakeLock = null, kept = true, seekTimer = 0;
+  let starts = [0], paras = [0], headings = [], idx = 0, playing = false, title = "", session = null, wakeLock = null, kept = true, seekTimer = 0;
+  let pausedAt = -1;   // where the last pause happened, so resuming can back up to its sentence
 
   /* ---------- display ---------- */
   function render() {
@@ -56,6 +57,7 @@ export function createReader() {
     const pace = playing ? pacer.liveWpm() : settings.voice ? Math.min(settings.wpm, BASE_WPM * 4) : settings.wpm;
     $("eta").textContent = formatDuration((n - idx) / pace * 60000 * (settings.punct ? 1.18 : 1)) + " left";
     $("wpmLive").textContent = pace + " wpm";
+    if (headings.length) { let k = -1; for (let i = 0; i < headings.length; i++) if (headings[i].word <= idx) k = i; $("chapters").selectedIndex = k + 1 }
   }
 
   /** The passage around the current word: the previous sentence through the next two. Rebuilt
@@ -99,6 +101,8 @@ export function createReader() {
   function play() {
     if (!face.tokens.length || playing) return;
     if (idx >= face.tokens.length - 1) idx = 0;
+    else if (idx === pausedAt) idx = starts[sentenceIndex(starts, idx)];   // a run-up after a pause
+    pausedAt = -1;
     playing = true; session = { start: performance.now(), words: 0 };
     const btn = $("play"); btn.textContent = "Pause";
     $("hint").textContent = "";
@@ -109,6 +113,7 @@ export function createReader() {
   function stop(finished) {
     if (!playing) return;
     playing = false; clearTimeout(seekTimer); pacer.stop(); releaseScreen();
+    pausedAt = finished ? -1 : idx;
     $("play").textContent = finished ? "Again" : "Read";
     $("hint").textContent = finished ? "Finished." : "Paused.";
     logSession(); savePos(); updateMeta();
@@ -119,7 +124,7 @@ export function createReader() {
    *  so speech restarts only once the slider rests (`settled`: the slider's change event). */
   function seek(i, settled = true) {
     idx = Math.max(0, Math.min(face.tokens.length - 1, i));
-    clearTimeout(seekTimer);
+    clearTimeout(seekTimer); pausedAt = -1;
     if (!playing) {
       render();
       if ($("play").textContent === "Again") { $("play").textContent = "Read"; $("hint").textContent = "Paused." }
@@ -130,6 +135,7 @@ export function createReader() {
     savePos();
   }
   const jumpSentence = dir => seek(sentenceJump(starts, idx, dir));
+  const jumpParagraph = dir => seek(sentenceJump(paras, idx, dir));
 
   function setWpm(v) {
     settings.wpm = Math.max(MIN_WPM, Math.min(MAX_WPM, v));
@@ -157,6 +163,16 @@ export function createReader() {
     else if (!voices.some(v => v.id === settings.voiceId)) { settings.voiceId = voices[0].id; store.set("voiceId", settings.voiceId) }
     sel.value = settings.voiceId;
     $("voiceNote").hidden = voices.some(v => v.premium);
+    $("hearVoice").disabled = !voices.length;
+  }
+
+  /** Speaks one line in the chosen voice at the slider's pace, so a voice can be judged before a whole book. */
+  function hearVoice() {
+    stop(false);
+    const u = new mac.Utterance("Here is how I sound when I read to you.");
+    u.voice = systemVoices(mac.synth).find(v => v.id === settings.voiceId)?.voice ?? null;
+    u.rate = Math.max(0.5, Math.min(4, settings.wpm / BASE_WPM));
+    mac.synth.cancel(); mac.synth.speak(u);
   }
 
   async function lockScreen() {
@@ -178,6 +194,7 @@ export function createReader() {
   }
   function renderRecord() {
     const log = store.get("log", []);
+    $("clearLog").hidden = !log.length;
     const words = log.reduce((a, e) => a + e.w, 0);
     $("stWords").textContent = words.toLocaleString();
     $("stSessions").textContent = log.length;
@@ -193,12 +210,29 @@ export function createReader() {
   }
 
   /* ---------- documents ---------- */
-  // The position is saved with the document's title and length, so it is only ever restored
-  // onto the text it was saved from.
-  const savePos = () => store.set("pos", { title, words: face.tokens.length, idx });
-  function savedPos() {
-    const p = store.get("pos", null);
-    return p && p.title === title && p.words === face.tokens.length ? p.idx : 0;
+  // Positions are kept per document, keyed by title and length, so each one is only ever
+  // restored onto the text it was saved from. The map is pruned to the fifty newest.
+  const key = () => docKey(title, face.tokens.length);
+  function savePos() {
+    const p = store.get("positions", {});
+    delete p[key()]; p[key()] = idx;
+    for (const k of Object.keys(p).slice(0, -50)) delete p[k];
+    store.set("positions", p);
+  }
+  const savedPos = () => store.get("positions", {})[key()] ?? 0;
+
+  const RECENT = 5;
+  /** Puts the document at the head of the recent list; the oldest fall off, and if even one
+   *  does not fit in local storage the list is left as it was. Returns whether it was kept. */
+  function rememberDoc(doc) {
+    const prev = store.get("recent", []), k = docKey(doc.title, face.tokens.length);
+    const entry = { title: doc.title, text: doc.text, source: doc.source || "", words: face.tokens.length, headings };
+    const list = [entry, ...prev.filter(d => docKey(d.title, d.words) !== k)].slice(0, RECENT);
+    while (!store.set("recent", list)) {
+      if (list.length <= 1) { store.set("recent", prev.filter(d => docKey(d.title, d.words) !== k)); return false }
+      list.pop();
+    }
+    return true;
   }
 
   /** Shows a document; returns false if it has no words. `remember` keeps the text across
@@ -207,16 +241,18 @@ export function createReader() {
     stop(false);
     const r = tokenize(doc.text || "");
     if (!r.tokens.length) return false;
-    face.tokens = r.tokens; starts = face.starts = r.starts; title = doc.title || "Untitled";
-    idx = resume ? Math.min(savedPos(), face.tokens.length - 1) : 0; ctxRange = null;
+    face.tokens = r.tokens; starts = face.starts = r.starts; paras = paragraphStarts(r.tokens); title = doc.title || "Untitled";
+    headings = (doc.headings || []).filter(h => h.word < r.tokens.length);
+    $("chapters").replaceChildren(new Option("Start", -1), ...headings.map((h, i) => new Option(h.title, i)));
+    $("chapterRow").hidden = !headings.length;
+    idx = resume ? Math.min(savedPos(), face.tokens.length - 1) : 0; ctxRange = null; pausedAt = -1;
     $("docTitle").textContent = title;
     $("source").textContent = doc.source || ""; $("source").hidden = !doc.source;
     $("input").value = doc.text;
     $("play").textContent = "Read";
     $("hint").textContent = idx ? "Resuming where you left off. Press Space." : "Click the reader or press Space to begin.";
-    // A book too big for local storage isn't kept (see `kept`); the sample opens next launch instead.
-    kept = !remember || store.set("doc", { title: doc.title, text: doc.text, source: doc.source || "" });
-    if (!kept) store.del("doc");
+    // A book too big for local storage isn't kept (see `kept`): the previous one opens next launch instead.
+    kept = !remember || rememberDoc(doc);
     render(); savePos();
     const w = $("word"); w.classList.remove("enter"); void w.offsetWidth; w.classList.add("enter");
     return true;
@@ -229,6 +265,14 @@ export function createReader() {
     $("stage").addEventListener("click", toggle);
     $("back").addEventListener("click", () => jumpSentence(-1));
     $("fwd").addEventListener("click", () => jumpSentence(1));
+    $("chapters").addEventListener("change", e => seek(+e.target.value < 0 ? 0 : headings[+e.target.value].word));
+    $("hearVoice").addEventListener("click", hearVoice);
+    // Clearing the log takes two clicks, like deleting a theme.
+    $("clearLog").addEventListener("click", e => {
+      const b = e.currentTarget;
+      if (b.textContent !== "Clear?") { b.textContent = "Clear?"; b.setAttribute("aria-label", "Confirm: clear reading history"); setTimeout(() => { b.textContent = "Clear history"; b.removeAttribute("aria-label") }, 3000); return }
+      store.del("log"); b.textContent = "Clear history"; b.removeAttribute("aria-label"); renderRecord();
+    });
     $("ctxText").addEventListener("click", e => { const i = e.target.dataset.i; if (i !== undefined) { seek(+i); e.target.blur() } });
     $("scrub").addEventListener("input", e => seek(+e.target.value, false));
     $("scrub").addEventListener("change", e => seek(+e.target.value));
@@ -249,12 +293,14 @@ export function createReader() {
       // Only the page itself and the stage take these keys: a focused button, checkbox, slider,
       // field or drawer keeps its own (Space activates, arrows step).
       if (e.metaKey || e.ctrlKey || e.altKey || (e.target !== document.body && e.target.id !== "stage")) return;
-      const keys = { " ": toggle, ArrowLeft: () => jumpSentence(-1), ArrowRight: () => jumpSentence(1), ArrowUp: () => setWpm(settings.wpm + 25), ArrowDown: () => setWpm(settings.wpm - 25) };
+      const jump = e.shiftKey ? jumpParagraph : jumpSentence;
+      const keys = { " ": toggle, ArrowLeft: () => jump(-1), ArrowRight: () => jump(1), ArrowUp: () => setWpm(settings.wpm + 25), ArrowDown: () => setWpm(settings.wpm - 25) };
       if (e.key === "Enter" && e.target.id === "stage") keys.Enter = toggle;
       const fn = keys[e.key];
       if (fn) { e.preventDefault(); fn() }
     });
     document.addEventListener("visibilitychange", () => { if (document.hidden) stop(false); else if (playing) lockScreen() });
+    window.addEventListener("blur", () => stop(false));   // another app came to the front
     setChunk(settings.chunk); setWpm(settings.wpm); renderRecord();
   }
 

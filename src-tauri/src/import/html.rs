@@ -29,9 +29,17 @@ const BLOCKS: &[&str] = &[
     "ol",
 ];
 const SKIPPED: &[&str] = &["head", "script", "style", "noscript", "svg", "math"];
+const HEADINGS: &[&str] = &["h1", "h2", "h3"];
 
 pub fn to_text(html: &str) -> String {
+    to_text_with_headings(html).0
+}
+
+/// The text plus every h1–h3: its text and the byte offset where it starts in the output.
+pub fn to_text_with_headings(html: &str) -> (String, Vec<(String, usize)>) {
     let mut out = String::with_capacity(html.len() / 2);
+    let mut headings = Vec::new();
+    let mut heading_at: Option<usize> = None;
     // Lowercased once for case-insensitive searches; ASCII lowercasing keeps every offset.
     let lower = html.to_ascii_lowercase();
     let mut rest = html;
@@ -71,11 +79,22 @@ pub fn to_text(html: &str) -> String {
         } else if name == "br" {
             out.push('\n');
         } else if BLOCKS.contains(&name.as_str()) {
+            if HEADINGS.contains(&name.as_str()) {
+                if closing {
+                    if let Some(at) = heading_at.take() {
+                        headings.push((out[at..].trim().to_string(), at));
+                    }
+                } else if !self_closing {
+                    out.push_str("\n\n");
+                    heading_at = Some(out.len());
+                    continue;
+                }
+            }
             out.push_str("\n\n");
         }
     }
     push_text(&mut out, rest);
-    out
+    (out, headings)
 }
 
 /// Appends a text node: entities decoded, whitespace runs collapsed to one space.
@@ -197,6 +216,19 @@ mod adversarial {
         assert_eq!(to_text(&html).trim(), "");
         let took = start.elapsed();
         assert!(took.as_millis() < 500, "20k script tags took {took:?}");
+    }
+
+    #[test]
+    fn headings_are_reported_with_their_offsets() {
+        let (text, hs) = to_text_with_headings(
+            "<h1>One</h1><p>a b</p><H2> Two <i>x</i> </H2><p>c</p><h4>no</h4>",
+        );
+        assert_eq!(hs.len(), 2);
+        assert_eq!(hs[0].0, "One");
+        assert_eq!(hs[1].0, "Two x");
+        for (title, at) in &hs {
+            assert!(text[*at..].starts_with(title.split(' ').next().unwrap()));
+        }
     }
 
     #[test]

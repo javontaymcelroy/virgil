@@ -20,7 +20,7 @@ test("a saved voice pick survives the voice list arriving late", async ({ page }
 test("a text too big to keep says so instead of silently forgetting it", async ({ page }) => {
   await page.addInitScript(() => {
     const set = Storage.prototype.setItem;
-    Storage.prototype.setItem = function (k, v) { if (k === "virgil:doc") throw new DOMException("quota", "QuotaExceededError"); return set.call(this, k, v) };
+    Storage.prototype.setItem = function (k, v) { if (k === "virgil:recent") throw new DOMException("quota", "QuotaExceededError"); return set.call(this, k, v) };
   });
   await boot(page);
   await drop(page, SHORT);

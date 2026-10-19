@@ -137,6 +137,11 @@ body.dropping .drop-hint { opacity: 1; }
 .transport .side.right { justify-content: flex-end; }
 .scrub { display: flex; flex-direction: column; gap: var(--space-1); }
 .scrub-row { display: flex; justify-content: space-between; }
+.chapters { display: flex; align-items: center; gap: var(--space-3); }
+.chapters .select { flex: 1; min-width: 0; }
+.row--voice { flex-wrap: nowrap; }
+.row--voice .select { flex: 1; min-width: 0; }
+.recent { list-style: none; margin: 0; padding: 0; }
 
 input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: var(--space-5); background: transparent; margin: 0; cursor: pointer; }
 input[type="range"]::-webkit-slider-runnable-track { height: var(--track-h); border-radius: var(--radius-pill); background: linear-gradient(90deg, var(--track-fill) 0 var(--fill, 0%), var(--track) var(--fill, 0%) 100%); }

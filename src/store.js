@@ -1,6 +1,9 @@
 /* Settings and reading history, kept in the webview's local storage under "virgil:". */
 const PREFIX = "virgil:";
 
+/** Keys a document's saved position: the same text under the same title. */
+export const docKey = (title, words) => `${title}\u0000${words}`;
+
 export const store = {
   get(key, fallback) {
     try { const v = localStorage.getItem(PREFIX + key); return v == null ? fallback : JSON.parse(v) } catch { return fallback }

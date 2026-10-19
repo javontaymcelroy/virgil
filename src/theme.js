@@ -12,11 +12,14 @@
    built-in private theme is on. */
 
 import { invoke, isTauri, convertFileSrc } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { store } from "./store.js";
 
 // Filled in by vite.config.js from the folders in themes/private/.
+const BUILTIN = typeof __VIRGIL_BUILTIN_THEMES__ === "undefined" ? [] : __VIRGIL_BUILTIN_THEMES__;
 const PRIVATE = typeof __VIRGIL_PRIVATE_THEMES__ === "undefined" ? [] : __VIRGIL_PRIVATE_THEMES__;
 const ADDED = "added:";
+const NOTES = { paper: "Warm and book-like, always light", night: "For a dark room, always dark", "high-contrast": "Black on white, heavy word" };
 
 const $ = id => document.getElementById(id);
 const ready = () => document.documentElement.setAttribute("data-ready", "");
@@ -25,7 +28,7 @@ const words = s => s.split("-").filter(Boolean).map(w => w[0].toUpperCase() + w.
 let current = "default", added = [], edited = [], editing = null;   // editing: id of the theme being edited, "" for a new one
 let editingBuiltin = null;                                          // or the built-in theme whose changes are being edited
 let onlyChanged = false;   // builder: write only the values changed from the original (built-in edits)
-const builtin = id => id === "default" || PRIVATE.includes(id);
+const builtin = id => id === "default" || BUILTIN.includes(id) || PRIVATE.includes(id);
 
 // The builder ("New theme"): a few pickers that become CSS custom properties. Everything else
 // (borders, hover and muted shades, the smaller and larger text sizes) is derived from them.
@@ -81,6 +84,7 @@ const DERIVED = `
   --radius-sm: calc(var(--radius) * 2 / 3);`;
 
 function href(id) {
+  if (BUILTIN.includes(id)) return `/builtin/${id}/theme.css`;
   if (PRIVATE.includes(id)) return `/private/${id}/theme.css`;
   if (id.startsWith(ADDED)) return `${convertFileSrc(id.slice(ADDED.length) + ".css", "vtheme")}?v=${Date.now()}`;
   return null;
@@ -119,6 +123,7 @@ function render() {
   const list = $("themeList"); list.textContent = "";
   const entries = [
     ["default", "Default", "Light and dark, follows macOS"],
+    ...BUILTIN.map(n => [n, words(n), NOTES[n] || "Built in"]),
     ...PRIVATE.map(n => [n, words(n), "Private, built into your copy"]),
     ...added.map(n => [ADDED + n, words(n), "Your theme"]),
   ];
@@ -476,9 +481,18 @@ async function remove(name, label) {
   } catch (err) { setThemeStatus(String(err), "err") }
 }
 
+/** System, light or dark, whatever macOS is set to. Themes that fix one (Paper, Night) win anyway. */
+function setAppearance(v) {
+  store.set("appearance", v);
+  for (const b of $("appearanceSeg").children) b.setAttribute("aria-pressed", b.dataset.v === v);
+  if (isTauri()) getCurrentWindow().setTheme(v === "system" ? null : v).catch(console.error);
+}
+
 export function initTheme() {
+  setAppearance(store.get("appearance", "system"));
+  $("appearanceSeg").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setAppearance(b.dataset.v) });
   const saved = store.get("theme", null);
-  const known = saved === "default" || PRIVATE.includes(saved) || (saved && saved.startsWith(ADDED) && isTauri());
+  const known = saved === "default" || BUILTIN.includes(saved) || PRIVATE.includes(saved) || (saved && saved.startsWith(ADDED) && isTauri());
   current = known ? saved : PRIVATE[0] || "default";
   apply(current);
   setTimeout(ready, 1500); // never stay hidden if a theme is slow to load

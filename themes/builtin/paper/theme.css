@@ -1,0 +1,34 @@
+/* Paper: warm and book-like, light in both appearances. Only the properties that change from
+   the default are set; the rest come from themes/default/theme.css. */
+:root {
+  color-scheme: light;
+
+  --bg: #f3ecdc;
+  --surface: #faf5ea;
+  --surface-sunken: #ebe3d1;
+  --border: rgba(70, 50, 20, 0.12);
+  --border-strong: rgba(70, 50, 20, 0.28);
+
+  --text: #2e2418;
+  --text-muted: #6a5a46;
+  --text-faint: #75644f;
+
+  --accent: #5b4630;
+  --accent-hover: #3f3021;
+  --on-accent: #faf5ea;
+  --pivot: #b5431c;
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  --selection: rgba(181, 67, 28, 0.2);
+
+  --ok: #3d6b45;
+  --error: #a8321f;
+
+  --track: rgba(70, 50, 20, 0.14);
+  --track-fill: #5b4630;
+  --thumb: #5b4630;
+
+  --font-word: var(--font-reading);
+  --word-weight: 400;
+  --shadow: none;
+  --shadow-overlay: -8px 0 32px rgba(70, 50, 20, 0.18);
+}

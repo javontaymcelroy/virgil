@@ -6,7 +6,10 @@ An open-source RSVP speed reader for macOS. Virgil shows a text one word at a ti
 
 - **Paste text** or **open a file** from the Add a text side panel (⌘T): `.txt`, `.md`, `.pdf` or `.epub` (or drop one on the window). Files are converted on your Mac and never uploaded.
 - Pace from 100 to 1000 words per minute, one to three words per flash, pauses at punctuation and paragraph breaks, and an ease-in at the start.
-- Pausing shows the surrounding passage. Virgil remembers the last text and where you stopped, plus a short history of your sessions.
+- **Read aloud** with the Mac's own voices, the reader following each spoken word; download a Premium voice in System Settings for a natural one.
+- The passage around the current word stays in view; click a word there to jump to it. Books and Markdown get a chapter menu.
+- Virgil keeps your last five texts and where you stopped in each, plus a short history of your sessions.
+- Four looks (Default, Paper, Night, High contrast), a theme builder, and a System / Light / Dark switch.
 - Native and lightweight: built with [Tauri](https://tauri.app).
 
 <table>
@@ -42,9 +45,10 @@ Coming next: read-aloud with word-synced voices (macOS system voices, a local Ko
 1. **Add a text.** Click **Add text** (⌘T) and paste into the box, then click **Read this text**. Or click **Open file…** (⌘O), or drop a `.txt`, `.md`, `.pdf` or `.epub` file onto the window. Pressing ⌘V anywhere outside a text field reads whatever is on the clipboard.
 2. **Read.** Press **Space** (or click the reader) to start and pause. Keep your eyes on the colored letter; the guides above and below mark where it lands.
 3. **Set your pace.** Drag **Pace**, or press ↑ ↓ while reading. A good start is 250–350 wpm; raise it by 25 at a time when a pace feels easy.
-4. **Find your place.** Pausing shows the passage around the word. ← → jump a sentence back or forward, and the scrubber moves anywhere in the text.
+4. **Find your place.** The passage around the word follows along beneath the reader; click any word in it to jump there. ← → jump a sentence, ⇧← ⇧→ a paragraph, the **Chapter** menu (books and Markdown) a chapter, and the scrubber moves anywhere. Resuming after a pause backs up to the start of the sentence.
 5. **Tune the rhythm.** **Words per flash** shows one, two or three words at once. **Rest at punctuation** pauses briefly at commas, full stops and paragraph breaks; **Ease into pace** starts slower and builds to your pace.
-6. **Pick up later.** Virgil reopens the last text where you stopped. Sessions over twenty words are added to **Your reading**, below the controls.
+6. **Read aloud.** Tick **Read aloud** under **Voice** and the Mac reads to you at your pace while the reader follows each word. **Hear it** previews the chosen voice. The compact voices macOS ships with sound robotic; download a Premium one (System Settings › Accessibility › Read & Speak › System Voice › Manage Voices) and it appears in the menu as soon as it is installed.
+7. **Pick up later.** Virgil reopens the last text where you stopped, and the five most recent texts are listed under **Recent** in the Add a text panel, each with how far you got. Sessions over twenty words are added to **Your reading**, below the controls, where **Clear history** empties the list.
 
 ## Keyboard
 
@@ -52,6 +56,7 @@ Coming next: read-aloud with word-synced voices (macOS system voices, a local Ko
 | --- | --- |
 | Space | Read / pause |
 | ← → | Previous / next sentence |
+| ⇧← ⇧→ | Previous / next paragraph |
 | ↑ ↓ | Pace ±25 wpm |
 | ⌘O | Open a file |
 | ⌘T | Show or hide the Add a text panel |
@@ -75,7 +80,7 @@ Tests: `npm test` (reader engine) and `cargo test` in `src-tauri/` (file import)
 
 ## Themes
 
-Every color, font and size comes from CSS custom properties in [`themes/default/theme.css`](themes/default/theme.css); the app's stylesheet hard-codes none of them. To use your own look, create `themes/private/<name>/theme.css`. It loads on top of the default, so it only needs the properties it changes, and it can add its own rules (and `@import` web fonts). `themes/private/` is gitignored: your theme is in your local builds, used automatically, and switched on and off under **Settings → Themes**, but it is never committed or included in public releases.
+Every color, font and size comes from CSS custom properties in [`themes/default/theme.css`](themes/default/theme.css); the app's stylesheet hard-codes none of them. Three more ship with the app in [`themes/builtin/`](themes/builtin/): **Paper** (warm, always light), **Night** (always dark, amber accents) and **High contrast**. **Settings → Appearance** picks System, Light or Dark for the Default theme. To use your own look, create `themes/private/<name>/theme.css`. It loads on top of the default, so it only needs the properties it changes, and it can add its own rules (and `@import` web fonts). `themes/private/` is gitignored: your theme is in your local builds, used automatically, and switched on and off under **Settings → Themes**, but it is never committed or included in public releases.
 
 You can also make themes without rebuilding, under **Settings → Themes**:
 
@@ -93,7 +98,7 @@ The built-in themes (Default and your private ones) have **Edit** too. It opens 
 Releases are signed and notarized, so this means you have an unsigned build: one built from source without signing, or a release whose notes say it isn't signed. Open it once with right-click → **Open**, or with **Open Anyway** in **System Settings → Privacy & Security**; see [Install](#install). After that it opens normally.
 
 **Does Virgil upload my files or send anything anywhere?**
-No. Files are converted to text on your Mac, and Virgil itself makes no network requests (a theme you add can load web fonts). Your last text, position, settings and reading history are kept in the app's local storage; your themes are in its app data folder.
+No. Files are converted to text on your Mac, and Virgil itself makes no network requests (a theme you add can load web fonts). Your last five texts, your position in each, settings and reading history are kept in the app's local storage; your themes are in its app data folder. Read aloud uses the speech synthesis built into macOS, on the Mac.
 
 **Which files can it read?**
 `.txt`, `.md`, `.pdf` and `.epub`. A PDF needs a text layer: a scanned PDF that is only page images has no text to read.

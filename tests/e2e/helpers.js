@@ -10,7 +10,8 @@ export async function boot(page, { knobs = {}, storage = {} } = {}) {
   storage = { theme: "default", ...storage };   // the shipped theme, not a private one on this Mac
   await page.addInitScript(({ knobs, storage }) => {
     Object.assign(window, knobs);
-    for (const [k, v] of Object.entries(storage)) localStorage.setItem("virgil:" + k, JSON.stringify(v));
+    // Seeds only what the page hasn't stored yet, so a reload inside a test keeps what the page saved.
+    for (const [k, v] of Object.entries(storage)) if (localStorage.getItem("virgil:" + k) == null) localStorage.setItem("virgil:" + k, JSON.stringify(v));
   }, { knobs, storage });
   await page.addInitScript({ path: SHIM });
   await page.goto("/");

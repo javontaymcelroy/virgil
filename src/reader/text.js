@@ -44,6 +44,13 @@ export function delayFor(group, wpm, restAtPunctuation) {
   return base * m;
 }
 
+/** Index of the first word of every paragraph. */
+export function paragraphStarts(tokens) {
+  const starts = [0];
+  tokens.forEach((t, i) => { if (t.para && i + 1 < tokens.length) starts.push(i + 1) });
+  return starts;
+}
+
 /** Index of the sentence containing word i. */
 export function sentenceIndex(starts, i) {
   let s = 0;

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { tokenize, orp, delayFor, rampedWpm, sentenceJump, formatDuration, chunkParagraphs } from "../src/reader/text.js";
+import { paragraphStarts, tokenize, orp, delayFor, rampedWpm, sentenceJump, formatDuration, chunkParagraphs } from "../src/reader/text.js";
 
 test("tokenize marks sentence ends, pauses and paragraphs", () => {
   const { tokens, starts } = tokenize("One, two.  Three!\n\nFour \"five.\"\nsix");
@@ -79,4 +79,10 @@ test("chunkParagraphs splits a wall of text at a sentence end past maxWords", ()
   const { tokens } = tokenize(text(30, 30, 30, 30));
   const c = chunkParagraphs(tokens, { paras: 4, maxWords: 50 });
   assert.deepEqual(c, [{ from: 0, to: 60 }, { from: 60, to: 120 }]);
+});
+
+test("paragraphStarts gives the first word of each paragraph", () => {
+  const { tokens } = tokenize("a b c.\n\nd e\n\nf");
+  assert.deepEqual(paragraphStarts(tokens), [0, 3, 5]);
+  assert.deepEqual(paragraphStarts(tokenize("one").tokens), [0]);
 });

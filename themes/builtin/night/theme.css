@@ -1,0 +1,34 @@
+/* Night: darker than the default's dark half, with amber accents and a lighter word, for
+   reading in a dark room. Dark in both appearances. */
+:root {
+  color-scheme: dark;
+
+  --bg: #0b0c10;
+  --surface: #121318;
+  --surface-sunken: #08090c;
+  --border: rgba(220, 220, 235, 0.08);
+  --border-strong: rgba(220, 220, 235, 0.2);
+
+  --text: #c9c9d1;
+  --text-muted: #8c8e99;
+  --text-faint: #858792;
+
+  --accent: #d6b26a;
+  --accent-hover: #e6c47e;
+  --on-accent: #0b0c10;
+  --pivot: #e3a04c;
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  --selection: rgba(227, 160, 76, 0.25);
+
+  --ok: #7cc49a;
+  --error: #ff8577;
+
+  --track: rgba(220, 220, 235, 0.12);
+  --track-fill: #d6b26a;
+  --thumb: #d6b26a;
+
+  --word-weight: 400;
+  --word-size: 52px;
+  --shadow: none;
+  --shadow-overlay: -8px 0 32px rgba(0, 0, 0, 0.6);
+}

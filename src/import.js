@@ -5,6 +5,7 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { titleFor } from "./reader/text.js";
+import { store, docKey } from "./store.js";
 
 const $ = id => document.getElementById(id);
 
@@ -13,14 +14,35 @@ export function setStatus(message, kind) {
   const s = $("status"); s.textContent = message; s.className = "status" + (kind ? " " + kind : "");
 }
 
-/** `show(doc)` puts a document on the reader: null if it has no words, else a note to add to
- *  the status ("" when there is nothing to add). */
+/** `show(doc, { resume })` puts a document on the reader: null if it has no words, else a
+ *  note to add to the status ("" when there is nothing to add). Returns `{ renderRecent }`. */
 export function wireImport(show) {
-  function loaded(doc, from) {
-    const note = show(doc);
+  function loaded(doc, from, opts) {
+    const note = show(doc, opts);
     if (note === null) return false;
     setStatus(`Loaded ${countWords(doc.text).toLocaleString()} words${from}.` + (note ? " " + note : ""), note ? "err" : "ok");
+    renderRecent();
     return true;
+  }
+
+  /** The last few texts, newest first, each with how far it was read. */
+  function renderRecent() {
+    const list = store.get("recent", []), positions = store.get("positions", {});
+    $("recentWrap").hidden = !list.length;
+    $("recent").replaceChildren(...list.map((d, i) => {
+      const li = document.createElement("li"); li.className = "theme-item";
+      const row = document.createElement("button"); row.type = "button"; row.className = "theme-row";
+      const pct = Math.round((positions[docKey(d.title, d.words)] ?? 0) / Math.max(1, d.words - 1) * 100);
+      const text = document.createElement("span"); text.textContent = d.title;
+      const sub = document.createElement("small"); sub.textContent = `${d.source || "Pasted text"} · ${pct}% read`; text.appendChild(sub);
+      row.appendChild(text);
+      row.addEventListener("click", () => loaded(d, d.source ? ` from ${d.source}` : "", { resume: true }));
+      const remove = document.createElement("button"); remove.type = "button"; remove.className = "theme-action"; remove.textContent = "×";
+      remove.setAttribute("aria-label", `Remove ${d.title} from recent`);
+      remove.addEventListener("click", () => { store.set("recent", list.filter((_, k) => k !== i)); renderRecent() });
+      li.append(row, remove);
+      return li;
+    }));
   }
   function accept(doc) {
     if (!loaded(doc, ` from ${doc.source}`)) setStatus(`${doc.source} has no readable words.`, "err");
@@ -58,6 +80,7 @@ export function wireImport(show) {
     listen("import:done", e => accept(e.payload));
     listen("import:failed", e => setStatus(e.payload, "err"));
   }
+  return { renderRecent };
 }
 
 const countWords = text => (text.match(/\S+/g) || []).length;
