@@ -74,7 +74,7 @@ export function wireImport(show, reader) {
       const row = document.createElement("button"); row.type = "button"; row.className = "theme-row";
       const pct = Math.round((positions[docKey(e.title, e.words)] ?? 0) / Math.max(1, e.words - 1) * 100);
       const text = document.createElement("span"); text.textContent = e.title;
-      const sub = document.createElement("small"); sub.textContent = `${e.source || "Pasted text"} · ${e.words.toLocaleString()} words · ${pct}% read`; text.appendChild(sub);
+      const sub = document.createElement("small"); sub.textContent = `${e.source || "Pasted text"} · ${e.words.toLocaleString()}\u00a0words · ${pct}%\u00a0read`; text.appendChild(sub);
       row.appendChild(text);
       row.addEventListener("click", () => openShelf(e.id));
       const remove = confirmButton("Remove", `Remove ${e.title} from the library`, async () => {
@@ -102,7 +102,7 @@ export function wireImport(show, reader) {
       const row = document.createElement("button"); row.type = "button"; row.className = "theme-row";
       const pct = Math.round((positions[docKey(d.title, d.words)] ?? 0) / Math.max(1, d.words - 1) * 100);
       const text = document.createElement("span"); text.textContent = d.title;
-      const sub = document.createElement("small"); sub.textContent = `${d.source || "Pasted text"} · ${pct}% read`; text.appendChild(sub);
+      const sub = document.createElement("small"); sub.textContent = `${d.source || "Pasted text"} · ${(d.words || 0).toLocaleString()}\u00a0words · ${pct}%\u00a0read`; text.appendChild(sub);
       row.appendChild(text);
       row.addEventListener("click", () => d.lib ? openShelf(d.lib) : loaded(d, d.source ? ` from ${d.source}` : "", { resume: true }));
       const remove = document.createElement("button"); remove.type = "button"; remove.className = "theme-action"; remove.textContent = "×";

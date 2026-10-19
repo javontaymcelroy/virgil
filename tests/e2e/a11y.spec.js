@@ -122,3 +122,18 @@ test("an error is shown and announced with every panel closed", async ({ page })
   await expect(page.locator("#status")).toHaveAttribute("role", "status");
   await expect(page.locator("#textPanel")).not.toHaveClass(/is-open/);
 });
+
+test("confirm labels fit their action column and long names wrap inside a row", async ({ page }) => {
+  await boot(page, { knobs: { __themes: ["midnight"] } });
+  await drop(page, { title: "Averylongtitlewithoutanyspacesorhyphensthatwouldotherwiseoverflowtherow", text: "one two", source: "averylongfilenamewithoutanybreakopportunityatall.txt" });
+  await page.keyboard.press("Meta+s");
+  await page.keyboard.press("Meta+l");
+  const fits = sel => page.evaluate(s => { const b = document.querySelector(s); return b.scrollWidth <= b.clientWidth }, sel);
+  await page.locator("#library .theme-action").click();
+  await expect(page.locator("#library .theme-action")).toHaveText("Remove?");
+  expect(await fits("#library .theme-action"), "Remove? fits").toBe(true);
+  expect(await fits("#library .theme-row"), "long title and file name wrap").toBe(true);
+  await page.keyboard.press("Meta+,");
+  await page.getByRole("button", { name: "Delete midnight" }).click();
+  expect(await fits("#themeList .theme-action.confirm"), "Delete? fits").toBe(true);
+});

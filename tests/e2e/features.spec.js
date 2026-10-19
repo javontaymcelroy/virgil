@@ -13,7 +13,7 @@ test("recent texts are listed newest first, reopen where they were left, and can
   await page.keyboard.press("Meta+l");
   const rows = page.locator("#recent .theme-row");
   await expect(rows).toHaveText([/Three/, /Short/]);
-  await expect(rows.nth(1)).toContainText("short.txt · 0% read");
+  await expect(rows.nth(1)).toContainText("short.txt · 10\u00a0words · 0%\u00a0read");
   await rows.nth(1).click();
   await expect(page.locator("#docTitle")).toHaveText("Short");
   await page.locator("#scrub").fill("5");
@@ -21,7 +21,7 @@ test("recent texts are listed newest first, reopen where they were left, and can
   await expect(page.locator("#docTitle")).toHaveText("Short");
   await expect(page.locator("#pos")).toHaveText("Word 6 of 10");
   await expect(page.locator("#libraryPanel")).toHaveClass(/is-open/);   // the open panel is remembered too
-  await expect(page.locator("#recent .theme-row").first()).toContainText("56% read");
+  await expect(page.locator("#recent .theme-row").first()).toContainText("56%\u00a0read");
   await page.getByRole("button", { name: "Remove Short from recent" }).click();
   await expect(page.locator("#recent .theme-row")).toHaveText([/Three/]);
 });
@@ -143,7 +143,7 @@ test("a text saved to the library is listed, reopens where it was left, and is s
   await shelve.click();
   await expect(page.locator("#status")).toHaveText("Short is in the library.");
   await expect(page.locator("#library .theme-row")).toHaveText([/Short/]);
-  await expect(page.locator("#library .theme-row")).toContainText("short.txt · 10 words · 0% read");
+  await expect(page.locator("#library .theme-row")).toContainText("short.txt · 10\u00a0words · 0%\u00a0read");
   await expect(shelve).toBeDisabled();
   await expect(shelve).toHaveText("On the shelf");
   // The recent entry points at the shelf instead of carrying the text.
@@ -157,7 +157,7 @@ test("a text saved to the library is listed, reopens where it was left, and is s
   await page.locator("#library .theme-row").first().click();
   await expect(page.locator("#docTitle")).toHaveText("Short");
   await expect(page.locator("#pos")).toHaveText("Word 6 of 10");
-  await expect(page.locator("#library .theme-row")).toContainText("56% read");
+  await expect(page.locator("#library .theme-row")).toContainText("56%\u00a0read");
   // Saving the same text again keeps it once; a different text under the same title gets its own row
   // (same title and same length counts as the same text, as it does for saved positions).
   await drop(page, { ...SHORT, text: "Ten nine eight seven six five four three two one zero." });
