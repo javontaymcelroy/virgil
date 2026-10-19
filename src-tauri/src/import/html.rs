@@ -186,3 +186,40 @@ mod tests {
         assert_eq!(to_text("a<SCRIPT>x()</SCRIPT>b").trim(), "ab");
     }
 }
+
+#[cfg(test)]
+mod adversarial {
+    use super::*;
+
+    /// S2: every skipped tag lowercases the rest of the chapter to find its close.
+    #[test]
+    #[ignore = "QA finding S2, see docs/qa-2026-10.md; run with --ignored"]
+    fn skipped_tags_scale_linearly() {
+        let html = "<script></script>".repeat(20_000);
+        let start = std::time::Instant::now();
+        assert_eq!(to_text(&html).trim(), "");
+        let took = start.elapsed();
+        assert!(took.as_millis() < 500, "20k script tags took {took:?}");
+    }
+
+    #[test]
+    fn unterminated_tags_and_entities_do_not_panic() {
+        for s in [
+            "<",
+            "<p",
+            "<!--",
+            "<![CDATA[",
+            "&",
+            "&#",
+            "&#x;",
+            "&#xffffffff;",
+            "<p>&#0;</p>",
+            "</",
+            "<p/",
+            "<a b='>'>x",
+        ] {
+            let _ = to_text(s);
+        }
+        assert_eq!(to_text("<P>Hi<BR/>there</P>"), "\n\nHi\nthere\n\n");
+    }
+}

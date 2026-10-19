@@ -188,3 +188,18 @@ mod tests {
         assert!(av_rate(2.0) > 0.5 && av_rate(2.0) < 1.0);
     }
 }
+
+#[cfg(test)]
+mod adversarial {
+    use super::av_rate;
+
+    /// S5: NaN can't arrive over JSON, but if it did, clamp passes it through and min() picks
+    /// the top speed rather than panicking.
+    #[test]
+    fn nan_rate_is_finite() {
+        let r = av_rate(f32::NAN);
+        assert!(r.is_finite() && (0.0..=1.0).contains(&r), "{r}");
+        assert_eq!(av_rate(f32::INFINITY), 1.0);
+        assert_eq!(av_rate(-1.0), 0.125);
+    }
+}

@@ -6,3 +6,8 @@ themes/private/
 
 # Marketing screenshots
 /screenshots/
+
+# Playwright
+/test-results/
+/playwright-report/
+/tests/e2e/__screenshots__/
