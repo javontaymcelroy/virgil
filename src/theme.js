@@ -150,7 +150,7 @@ function render() {
   }
 }
 
-function action(text, label, onClick) {
+export function action(text, label, onClick) {
   const b = document.createElement("button");
   b.type = "button"; b.className = "theme-action"; b.textContent = text; b.setAttribute("aria-label", label);
   b.addEventListener("click", onClick);

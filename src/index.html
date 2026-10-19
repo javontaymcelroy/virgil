@@ -22,6 +22,11 @@
     <div class="row"><button class="btn" id="shelve" type="button" aria-keyshortcuts="Meta+S" title="Save the current text (⌘S)">Save to library</button></div>
     <ul class="theme-list recent" id="library" hidden></ul>
     <p class="status" id="libraryEmpty">Nothing saved yet.</p>
+    <section class="drawer-section" id="recentWrap" aria-labelledby="recentH" hidden>
+      <h3 class="label" id="recentH">Recent</h3>
+      <ul class="theme-list recent" id="recent"></ul>
+      <p class="drawer-note">The last five texts you opened. Save keeps one on the shelf for good.</p>
+    </section>
   </div>
 </aside>
 
@@ -128,10 +133,6 @@
       <button class="drawer-close" type="button" aria-label="Close panel" title="Close (Esc)">×</button>
     </div>
     <p>Paste anything, open a .txt, .md, .pdf or .epub file, or drop one on the window. Files are read on your Mac and never uploaded.</p>
-    <section class="drawer-section" id="recentWrap" aria-labelledby="recentH" hidden>
-      <h3 class="label" id="recentH">Recent</h3>
-      <ul class="theme-list recent" id="recent"></ul>
-    </section>
     <label class="label" for="input">Text to read</label>
     <textarea id="input" class="textarea" placeholder="Paste text here…" spellcheck="false"></textarea>
     <div class="row">

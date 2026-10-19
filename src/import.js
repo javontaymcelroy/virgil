@@ -6,7 +6,7 @@ import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { titleFor } from "./reader/text.js";
 import { store, docKey } from "./store.js";
-import { confirmButton } from "./theme.js";
+import { action, confirmButton } from "./theme.js";
 
 const $ = id => document.getElementById(id);
 
@@ -36,18 +36,26 @@ export function wireImport(show, reader) {
     } catch (err) { setStatus(String(err), "err") }
   }
 
+  const sameAs = (a, b) => docKey(a.title, a.words) === docKey(b.title, b.words);
+  const onReader = d => reader.doc && sameAs(d, { title: reader.doc.title, words: reader.wordCount });
+
+  /** Puts `doc` on the shelf and points its recent entry there. */
+  async function save(doc) {
+    try {
+      const entry = await invoke("library_save", { doc: { title: doc.title, text: doc.text, source: doc.source || "", headings: doc.headings || [] } });
+      if (onReader({ title: doc.title, words: entry.words })) reader.shelved(entry.id);
+      else store.set("recent", store.get("recent", []).map(d => sameAs(d, { title: doc.title, words: entry.words }) ? { title: d.title, source: d.source, words: d.words, headings: d.headings, lib: entry.id } : d));
+      setStatus(`${entry.title} is in the library.`, "ok");
+    } catch (err) { setStatus(String(err), "err") }
+    await renderLibrary();
+  }
+
   /** Saves what is on the reader to the library (⌘S). */
   async function shelve() {
     const doc = reader.doc, b = $("shelve");
     if (!doc || b.disabled) return;
     b.disabled = true; b.textContent = "Saving…";
-    try {
-      const entry = await invoke("library_save", { doc: { title: doc.title, text: doc.text, source: doc.source || "", headings: doc.headings || [] } });
-      reader.shelved(entry.id);
-      setStatus(`${entry.title} is in the library.`, "ok");
-      renderRecent();
-    } catch (err) { setStatus(String(err), "err") }
-    await renderLibrary();
+    await save(doc);
   }
 
   /** The library shelf: every saved text, by title, with how far it was read. Its panel is
@@ -58,7 +66,7 @@ export function wireImport(show, reader) {
     document.querySelector('[aria-controls="libraryPanel"]').hidden = false;
     try { shelf = await invoke("library_list") } catch (err) { shelf = []; setStatus(String(err), "err") }
     const positions = store.get("positions", {}), cur = reader.doc;
-    const on = cur && shelf.find(e => e.id === cur.lib || docKey(e.title, e.words) === docKey(cur.title, reader.wordCount));
+    const on = cur && shelf.find(e => e.id === cur.lib || onReader(e));
     $("library").hidden = !shelf.length; $("libraryEmpty").hidden = !!shelf.length;
     $("shelve").disabled = !cur || !!on; $("shelve").textContent = on ? "On the shelf" : "Save to library";
     $("library").replaceChildren(...shelf.map(e => {
@@ -81,9 +89,11 @@ export function wireImport(show, reader) {
       li.append(row, remove);
       return li;
     }));
+    renderRecent();
   }
 
-  /** The last few texts, newest first, each with how far it was read. */
+  /** The last few texts, newest first, each with how far it was read. One not on the shelf
+   *  gets a Save action. */
   function renderRecent() {
     const list = store.get("recent", []), positions = store.get("positions", {});
     $("recentWrap").hidden = !list.length;
@@ -98,7 +108,9 @@ export function wireImport(show, reader) {
       const remove = document.createElement("button"); remove.type = "button"; remove.className = "theme-action"; remove.textContent = "×";
       remove.setAttribute("aria-label", `Remove ${d.title} from recent`);
       remove.addEventListener("click", () => { store.set("recent", list.filter((_, k) => k !== i)); renderRecent() });
-      li.append(row, remove);
+      li.append(row);
+      if (!(d.lib || shelf.some(e => sameAs(e, d)))) li.append(action("Save", `Save ${d.title} to the library`, () => save(d)));
+      li.append(remove);
       return li;
     }));
   }

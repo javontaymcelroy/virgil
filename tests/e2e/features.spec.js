@@ -10,7 +10,7 @@ test("recent texts are listed newest first, reopen where they were left, and can
   await boot(page);
   await drop(page, SHORT);
   await drop(page, THREE);
-  await page.keyboard.press("Meta+t");
+  await page.keyboard.press("Meta+l");
   const rows = page.locator("#recent .theme-row");
   await expect(rows).toHaveText([/Three/, /Short/]);
   await expect(rows.nth(1)).toContainText("short.txt · 0% read");
@@ -20,7 +20,7 @@ test("recent texts are listed newest first, reopen where they were left, and can
   await page.reload();
   await expect(page.locator("#docTitle")).toHaveText("Short");
   await expect(page.locator("#pos")).toHaveText("Word 6 of 10");
-  await expect(page.locator("#textPanel")).toHaveClass(/is-open/);   // the open panel is remembered too
+  await expect(page.locator("#libraryPanel")).toHaveClass(/is-open/);   // the open panel is remembered too
   await expect(page.locator("#recent .theme-row").first()).toContainText("56% read");
   await page.getByRole("button", { name: "Remove Short from recent" }).click();
   await expect(page.locator("#recent .theme-row")).toHaveText([/Three/]);
@@ -213,4 +213,21 @@ test("a library that can't be reached says so, and a missing shelf entry falls b
   await page.evaluate(() => localStorage.setItem("virgil:recent", JSON.stringify([{ title: "Gone", source: "gone.txt", words: 3, headings: [], lib: "gone" }])));
   await page.reload();
   await expect(page.locator("#docTitle")).not.toHaveText(/Gone|Opening/);
+});
+
+test("a recent text can be saved to the library from its row, after which the row has no Save", async ({ page }) => {
+  await boot(page);
+  await drop(page, SHORT);
+  await drop(page, THREE);
+  await page.keyboard.press("Meta+l");
+  await page.getByRole("button", { name: "Save Short to the library" }).click();
+  await expect(page.locator("#status")).toHaveText("Short is in the library.");
+  await expect(page.locator("#library .theme-row")).toHaveText([/Short/]);
+  await expect(page.getByRole("button", { name: "Save Short to the library" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Save Three to the library" })).toHaveCount(1);
+  expect(await recentOf(page, "Short")).toMatchObject({ lib: "short" });
+  expect((await recentOf(page, "Short")).text).toBeUndefined();
+  await expect(page.locator("#docTitle")).toHaveText("Three");
+  await page.locator("#recent .theme-row").filter({ hasText: "Short" }).click();
+  await expect(page.locator("#docTitle")).toHaveText("Short");
 });

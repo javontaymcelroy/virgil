@@ -16,19 +16,20 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
-test("axe: Library open, with a shelved text and the button disabled", async ({ page }) => {
+test("axe: Library open, with a shelved text, a recent one with Save, and the button disabled", async ({ page }) => {
   await boot(page);
+  await drop(page, { title: "Three", text: "One two three.", source: "three.txt" });
   await drop(page, SHORT);
   await page.keyboard.press("Meta+s");
   await page.keyboard.press("Meta+l");
   await expect(page.locator("#shelve")).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Save Three to the library" })).toBeVisible();
   const r = await axe(page);
   expect(report(r)).toBe("");
 });
 
-test("axe: Add text panel open, with the recent list", async ({ page }) => {
+test("axe: Add text panel open", async ({ page }) => {
   await boot(page);
-  await drop(page, SHORT);
   await page.keyboard.press("Meta+t");
   const r = await axe(page);
   expect(report(r)).toBe("");

@@ -58,13 +58,3 @@ for (const width of [1280, 640]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
   });
 }
-
-test("Add text with recent texts", async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await boot(page);
-  await drop(page, SHORT);
-  await drop(page, { title: "A Longer Second Document", text: "Alpha beta gamma delta.", source: "second.md" });
-  await page.keyboard.press("Meta+t");
-  await settle(page);
-  await page.screenshot({ path: `${DIR}/addtext-recent.png` });
-});
