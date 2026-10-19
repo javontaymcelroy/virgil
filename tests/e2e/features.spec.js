@@ -187,7 +187,9 @@ test("removing from the library takes a confirming click and hands the text back
   await boot(page);
   await drop(page, SHORT);
   await page.keyboard.press("Meta+s");
+  await expect(page.locator("#status")).toHaveText("Short is in the library.");
   await page.keyboard.press("Meta+l");
+  await expect(page.locator("#libraryPanel")).toHaveClass(/is-open/);
   const remove = page.getByRole("button", { name: "Remove Short from the library" });
   await remove.click();
   await expect(remove).toHaveText("Remove?");
@@ -220,6 +222,7 @@ test("a recent text can be saved to the library from its row, after which the ro
   await drop(page, SHORT);
   await drop(page, THREE);
   await page.keyboard.press("Meta+l");
+  await expect(page.locator("#libraryPanel")).toHaveClass(/is-open/);
   await page.getByRole("button", { name: "Save Short to the library" }).click();
   await expect(page.locator("#status")).toHaveText("Short is in the library.");
   await expect(page.locator("#library .theme-row")).toHaveText([/Short/]);
