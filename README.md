@@ -49,7 +49,7 @@ Coming next: read-aloud with word-synced voices (macOS system voices, a local Ko
 5. **Tune the rhythm.** **Words per flash** shows one, two or three words at once. **Rest at punctuation** pauses briefly at commas, full stops and paragraph breaks; **Ease into pace** starts slower and builds to your pace.
 6. **Read aloud.** Tick **Read aloud** under **Voice** and the Mac reads to you at your pace while the reader follows each word. **Hear it** previews the chosen voice. The compact voices macOS ships with sound robotic; download a Premium one (System Settings › Accessibility › Read & Speak › System Voice › Manage Voices) and it appears in the menu as soon as it is installed.
 7. **Pick up later.** Virgil reopens the last text where you stopped. Click the book icon (⌘L) to open the **Library** on the left: the five most recent texts are listed under **Recent**, each with how far you got. Sessions over twenty words are added to **Your reading**, below the controls, where **Clear history** empties the list.
-8. **Keep a library.** **Save to library** (⌘S), or **Save** on a recent row, puts a text on the shelf for good, however long it is. Click a row to pick it up again, or **Remove** (twice) to take it off. The library lives in Virgil's app data on this Mac.
+8. **Keep a library.** **Save to library** (⌘S), or **Save** on a recent row, puts a text on the shelf for good, however long it is; **Open file…** in the Library opens a file and shelves it in one go. Click a row to pick it up again, or **Remove** (twice) to take it off. The library lives in Virgil's app data on this Mac.
 
 ## Keyboard
 

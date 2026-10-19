@@ -234,3 +234,22 @@ test("a recent text can be saved to the library from its row, after which the ro
   await page.locator("#recent .theme-row").filter({ hasText: "Short" }).click();
   await expect(page.locator("#docTitle")).toHaveText("Short");
 });
+
+test("Open file in the Library reads the file and puts it on the shelf in one go", async ({ page }) => {
+  await boot(page, { knobs: { __doc: { ...THREE, source: "three.md" } } });
+  await page.keyboard.press("Meta+l");
+  await page.locator("#openToLibrary").click();
+  await expect(page.locator("#docTitle")).toHaveText("Three");
+  await expect(page.locator("#status")).toHaveText("Three is in the library.");
+  await expect(page.locator("#library .theme-row")).toHaveText([/Three/]);
+  await expect(page.locator("#shelve")).toHaveText("On the shelf");
+  // A cancelled Open panel leaves the shelf alone.
+  await page.evaluate(() => { window.__doc = null });
+  await page.locator("#openToLibrary").click();
+  await expect(page.locator("#library .theme-row")).toHaveCount(1);
+  // A file with no words is reported and not shelved.
+  await page.evaluate(() => { window.__doc = { title: "Blank", text: " ", source: "blank.txt" } });
+  await page.locator("#openToLibrary").click();
+  await expect(page.locator("#status")).toHaveText("blank.txt has no readable words.");
+  await expect(page.locator("#library .theme-row")).toHaveCount(1);
+});

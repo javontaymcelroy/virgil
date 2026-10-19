@@ -118,12 +118,15 @@ export function wireImport(show, reader) {
     if (!loaded(doc, ` from ${doc.source}`)) setStatus(`${doc.source} has no readable words.`, "err");
   }
 
-  async function openFile() {
+  /** Shows the Open panel and reads the chosen file; with `shelve`, it goes on the shelf too. */
+  async function openFile({ shelve = false } = {}) {
     if (!isTauri()) { setStatus("Opening files needs the Virgil app. Paste the text instead.", "err"); return }
     setStatus("Opening…");
     try {
       const doc = await invoke("open_document");
-      if (doc) accept(doc); else setStatus("");
+      if (!doc) { setStatus(""); return }
+      accept(doc);
+      if (shelve && reader.doc === doc) await save(doc);
     } catch (err) { setStatus(String(err), "err") }
   }
 
@@ -134,6 +137,7 @@ export function wireImport(show, reader) {
 
   $("open").addEventListener("click", openFile);
   $("shelve").addEventListener("click", shelve);
+  $("openToLibrary").addEventListener("click", () => openFile({ shelve: true }));
   $("useText").addEventListener("click", () => readPasted($("input").value));
   document.addEventListener("keydown", e => {
     if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return;
