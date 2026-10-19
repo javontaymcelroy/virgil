@@ -16,9 +16,12 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
-test("axe: Add text panel open", async ({ page }) => {
+test("axe: Add text panel open, with the library and recent lists", async ({ page }) => {
   await boot(page);
+  await drop(page, SHORT);
+  await page.keyboard.press("Meta+s");
   await page.keyboard.press("Meta+t");
+  await expect(page.locator("#shelve")).toBeDisabled();
   const r = await axe(page);
   expect(report(r)).toBe("");
 });

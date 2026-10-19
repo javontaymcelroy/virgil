@@ -49,6 +49,7 @@ Coming next: read-aloud with word-synced voices (macOS system voices, a local Ko
 5. **Tune the rhythm.** **Words per flash** shows one, two or three words at once. **Rest at punctuation** pauses briefly at commas, full stops and paragraph breaks; **Ease into pace** starts slower and builds to your pace.
 6. **Read aloud.** Tick **Read aloud** under **Voice** and the Mac reads to you at your pace while the reader follows each word. **Hear it** previews the chosen voice. The compact voices macOS ships with sound robotic; download a Premium one (System Settings › Accessibility › Read & Speak › System Voice › Manage Voices) and it appears in the menu as soon as it is installed.
 7. **Pick up later.** Virgil reopens the last text where you stopped, and the five most recent texts are listed under **Recent** in the Add a text panel, each with how far you got. Sessions over twenty words are added to **Your reading**, below the controls, where **Clear history** empties the list.
+8. **Keep a library.** Click **Save to library** (⌘S) in the Add a text panel and the text goes on the shelf under **Library**, however long it is, with how far you have read. Click a row to pick it up again, or **Remove** (twice) to take it off. The library lives in Virgil's app data on this Mac.
 
 ## Keyboard
 
@@ -59,6 +60,7 @@ Coming next: read-aloud with word-synced voices (macOS system voices, a local Ko
 | ⇧← ⇧→ | Previous / next paragraph |
 | ↑ ↓ | Pace ±25 wpm |
 | ⌘O | Open a file |
+| ⌘S | Save the text to the library |
 | ⌘T | Show or hide the Add a text panel |
 | ⌘, | Show or hide Settings |
 | Esc | Close the open panel |
@@ -98,7 +100,7 @@ The built-in themes (Default and your private ones) have **Edit** too. It opens 
 Releases are signed and notarized, so this means you have an unsigned build: one built from source without signing, or a release whose notes say it isn't signed. Open it once with right-click → **Open**, or with **Open Anyway** in **System Settings → Privacy & Security**; see [Install](#install). After that it opens normally.
 
 **Does Virgil upload my files or send anything anywhere?**
-No. Files are converted to text on your Mac, and Virgil itself makes no network requests (a theme you add can load web fonts). Your last five texts, your position in each, settings and reading history are kept in the app's local storage; your themes are in its app data folder. Read aloud uses the speech synthesis built into macOS, on the Mac.
+No. Files are converted to text on your Mac, and Virgil itself makes no network requests (a theme you add can load web fonts). Your last five texts, your position in each, settings and reading history are kept in the app's local storage; your themes and library are in its app data folder. Read aloud uses the speech synthesis built into macOS, on the Mac.
 
 **Which files can it read?**
 `.txt`, `.md`, `.pdf` and `.epub`. A PDF needs a text layer: a scanned PDF that is only page images has no text to read.

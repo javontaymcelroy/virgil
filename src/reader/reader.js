@@ -25,7 +25,7 @@ export function createReader() {
   const timer = createTimerPacer(face), mac = systemSpeech(), speech = createSpeechPacer(face, mac);
   let pacer = timer;
 
-  let starts = [0], paras = [0], headings = [], idx = 0, playing = false, title = "", session = null, wakeLock = null, kept = true, seekTimer = 0;
+  let starts = [0], paras = [0], headings = [], idx = 0, playing = false, title = "", session = null, wakeLock = null, kept = true, seekTimer = 0, current = null;
   let pausedAt = -1;   // where the last pause happened, so resuming can back up to its sentence
 
   /* ---------- display ---------- */
@@ -226,7 +226,8 @@ export function createReader() {
    *  does not fit in local storage the list is left as it was. Returns whether it was kept. */
   function rememberDoc(doc) {
     const prev = store.get("recent", []), k = docKey(doc.title, face.tokens.length);
-    const entry = { title: doc.title, text: doc.text, source: doc.source || "", words: face.tokens.length, headings };
+    // A text on the library shelf is kept there, not copied into local storage.
+    const entry = { title: doc.title, source: doc.source || "", words: face.tokens.length, headings, ...(doc.lib ? { lib: doc.lib } : { text: doc.text }) };
     const list = [entry, ...prev.filter(d => docKey(d.title, d.words) !== k)].slice(0, RECENT);
     while (!store.set("recent", list)) {
       if (list.length <= 1) { store.set("recent", prev.filter(d => docKey(d.title, d.words) !== k)); return false }
@@ -241,6 +242,7 @@ export function createReader() {
     stop(false);
     const r = tokenize(doc.text || "");
     if (!r.tokens.length) return false;
+    current = doc;
     face.tokens = r.tokens; starts = face.starts = r.starts; paras = paragraphStarts(r.tokens); title = doc.title || "Untitled";
     headings = (doc.headings || []).filter(h => h.word < r.tokens.length);
     $("chapters").replaceChildren(new Option("Start", -1), ...headings.map((h, i) => new Option(h.title, i)));
@@ -310,5 +312,9 @@ export function createReader() {
     get wordCount() { return face.tokens.length },
     /** False when the last `remember` load didn't fit in local storage. */
     get kept() { return kept },
+    /** The document on the reader, as it was loaded. */
+    get doc() { return current },
+    /** The document was put on the library shelf: the recent entry now points there instead of holding the text. */
+    shelved(id) { if (current) { current = { ...current, lib: id }; kept = rememberDoc(current) } },
   };
 }

@@ -1,5 +1,5 @@
-/* Quality-of-life features: recent texts, chapters and paragraph jumps, clearing history, voice
-   preview, appearance, the run-up on resume, pausing on blur, and the built-in themes. */
+/* Quality-of-life features: recent texts, the library, chapters and paragraph jumps, clearing
+   history, voice preview, appearance, the run-up on resume, pausing on blur, and the built-in themes. */
 import { test, expect, boot, SHORT, drop, calls } from "./helpers.js";
 
 const THREE = { title: "Three", text: "One two three.\n\nFour five six.\n\nSeven eight nine.", source: "three.txt" };
@@ -128,4 +128,88 @@ test("the built-in themes are offered and apply", async ({ page }) => {
   const light = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
   await page.emulateMedia({ colorScheme: "dark" });
   await expect.poll(() => page.evaluate(() => getComputedStyle(document.body).backgroundColor)).not.toBe(light);
+});
+
+const recentOf = (page, title) => page.evaluate(t => JSON.parse(localStorage.getItem("virgil:recent")).find(d => d.title === t), title);
+
+test("a text saved to the library is listed, reopens where it was left, and is still there after a relaunch", async ({ page }) => {
+  await boot(page);
+  await drop(page, SHORT);
+  await page.keyboard.press("Meta+t");
+  await expect(page.locator("#libraryEmpty")).toBeVisible();
+  const shelve = page.locator("#shelve");
+  await expect(shelve).toBeEnabled();
+  await shelve.click();
+  await expect(page.locator("#status")).toHaveText("Short is in the library.");
+  await expect(page.locator("#library .theme-row")).toHaveText([/Short/]);
+  await expect(page.locator("#library .theme-row")).toContainText("short.txt · 10 words · 0% read");
+  await expect(shelve).toBeDisabled();
+  await expect(shelve).toHaveText("On the shelf");
+  // The recent entry points at the shelf instead of carrying the text.
+  expect(await recentOf(page, "Short")).toMatchObject({ lib: "short" });
+  expect((await recentOf(page, "Short")).text).toBeUndefined();
+  await page.locator("#scrub").fill("5");
+  await drop(page, THREE);
+  await expect(shelve).toBeEnabled();
+  await page.reload();
+  await expect(page.locator("#docTitle")).toHaveText("Three");
+  await page.locator("#library .theme-row").first().click();
+  await expect(page.locator("#docTitle")).toHaveText("Short");
+  await expect(page.locator("#pos")).toHaveText("Word 6 of 10");
+  await expect(page.locator("#library .theme-row")).toContainText("56% read");
+  // Saving the same text again keeps it once; a different text under the same title gets its own row
+  // (same title and same length counts as the same text, as it does for saved positions).
+  await drop(page, { ...SHORT, text: "Ten nine eight seven six five four three two one zero." });
+  await page.keyboard.press("Meta+s");
+  await expect(page.locator("#library .theme-row")).toHaveCount(2);
+  await page.keyboard.press("Meta+s");
+  await expect(page.locator("#library .theme-row")).toHaveCount(2);
+});
+
+test("a shelved book reopens on launch even when it is too long for local storage", async ({ page }) => {
+  await page.addInitScript(() => {
+    const set = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (k, v) { if (k === "virgil:recent" && v.includes('"text"')) throw new DOMException("quota", "QuotaExceededError"); return set.call(this, k, v) };
+  });
+  await boot(page);
+  await drop(page, SHORT);
+  await expect(page.locator("#status")).toContainText("save it to the library");
+  await page.keyboard.press("Meta+s");
+  await expect(page.locator("#status")).toHaveText("Short is in the library.");
+  await page.locator("#scrub").fill("3");
+  await page.reload();
+  await expect(page.locator("#docTitle")).toHaveText("Short");
+  await expect(page.locator("#pos")).toHaveText("Word 4 of 10");
+});
+
+test("removing from the library takes a confirming click and hands the text back to the recent list", async ({ page }) => {
+  await boot(page);
+  await drop(page, SHORT);
+  await page.keyboard.press("Meta+s");
+  await page.keyboard.press("Meta+t");
+  const remove = page.getByRole("button", { name: "Remove Short from the library" });
+  await remove.click();
+  await expect(remove).toHaveText("Remove?");
+  await expect(remove).toHaveAccessibleName(/Confirm/);
+  await remove.click();
+  await expect(page.locator("#status")).toHaveText("Short was removed from the library.");
+  await expect(page.locator("#library")).toBeHidden();
+  await expect(page.locator("#libraryEmpty")).toBeVisible();
+  await expect(page.locator("#shelve")).toBeEnabled();
+  await expect(page.locator("#shelve")).toHaveText("Save to library");
+  expect((await recentOf(page, "Short")).text).toBe(SHORT.text);
+  await page.reload();
+  await expect(page.locator("#docTitle")).toHaveText("Short");
+});
+
+test("a library that can't be reached says so, and a missing shelf entry falls back to the sample", async ({ page }) => {
+  await boot(page, { knobs: { __libraryFail: true } });
+  await drop(page, SHORT);
+  await page.keyboard.press("Meta+s");
+  await expect(page.locator("#status")).toHaveText("The library folder can't be read.");
+  await expect(page.locator("#status")).toHaveClass(/err/);
+  await expect(page.locator("#shelve")).toHaveText("Save to library");
+  await page.evaluate(() => localStorage.setItem("virgil:recent", JSON.stringify([{ title: "Gone", source: "gone.txt", words: 3, headings: [], lib: "gone" }])));
+  await page.reload();
+  await expect(page.locator("#docTitle")).not.toHaveText(/Gone|Opening/);
 });

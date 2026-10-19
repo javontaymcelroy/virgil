@@ -9,7 +9,7 @@ mod html;
 mod markdown;
 mod pdf;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 /// Extensions the Open panel offers and drag-and-drop accepts.
@@ -29,7 +29,7 @@ pub struct Document {
 
 /// A heading and the index of its first word in `text` (words are whitespace-separated, the
 /// same way the page tokenizes), so the reader can jump to it.
-#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Heading {
     pub title: String,
     pub word: usize,

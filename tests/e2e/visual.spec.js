@@ -44,10 +44,11 @@ for (const theme of ["paper", "night", "high-contrast"]) {
   }
 }
 
-test("Add text with recent texts", async ({ page }) => {
+test("Add text with the library and recent texts", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await boot(page);
   await drop(page, SHORT);
+  await page.keyboard.press("Meta+s");
   await drop(page, { title: "A Longer Second Document", text: "Alpha beta gamma delta.", source: "second.md" });
   await page.keyboard.press("Meta+t");
   await settle(page);

@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod import;
+mod library;
 mod themes;
 mod voice;
 
@@ -58,6 +59,10 @@ fn main() {
         .register_uri_scheme_protocol(themes::SCHEME, themes::serve)
         .invoke_handler(tauri::generate_handler![
             open_document,
+            library::library_list,
+            library::library_save,
+            library::library_open,
+            library::library_remove,
             themes::list_themes,
             themes::add_theme,
             themes::save_theme,

@@ -1,3 +1,4 @@
+import { invoke } from "@tauri-apps/api/core";
 import { initTheme } from "./theme.js";
 import { createReader } from "./reader/reader.js";
 import { wireImport, setStatus } from "./import.js";
@@ -14,12 +15,13 @@ const importer = wireImport((doc, opts) => {
   if (!reader.load(doc, { remember: true, ...opts })) return null;
   document.getElementById("hint").textContent = `${doc.source || "Your text"} is ready. Press Space to begin.`;
   window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-  return reader.kept ? "" : "Too long to keep between launches; open it again next time.";
-});
+  return reader.kept ? "" : "Too long to keep between launches, or save it to the library.";
+}, reader);
 
 document.getElementById("sample").addEventListener("click", () => {
   reader.load(SAMPLE);
   setStatus("Sample restored.", "ok");
+  importer.renderLibrary();
 });
 
 // Earlier builds kept one document and one position; carry them into the recent list.
@@ -32,5 +34,14 @@ if (old && old.text && !store.get("recent", []).length) {
 store.del("doc"); store.del("pos");
 
 const saved = store.get("recent", [])[0];
-if (!(saved && saved.text && reader.load(saved, { resume: true }))) reader.load(SAMPLE, { resume: true });
-importer.renderRecent();
+if (saved && saved.lib) {
+  // The last text is on the library shelf: fetch it from disk, falling back to the sample.
+  document.getElementById("docTitle").textContent = "Opening…";
+  invoke("library_open", { id: saved.lib })
+    .then(doc => reader.load({ ...doc, lib: saved.lib }, { resume: true }))
+    .catch(() => false)
+    .then(ok => { if (!ok) reader.load(SAMPLE, { resume: true }); importer.renderRecent(); importer.renderLibrary() });
+} else {
+  if (!(saved && saved.text && reader.load(saved, { resume: true }))) reader.load(SAMPLE, { resume: true });
+  importer.renderRecent(); importer.renderLibrary();
+}

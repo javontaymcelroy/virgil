@@ -158,7 +158,7 @@ function action(text, label, onClick) {
 }
 
 // Delete and Reset take two clicks: the first turns the button into "Delete?" for a few seconds.
-function confirmButton(text, label, onConfirm) {
+export function confirmButton(text, label, onConfirm) {
   const b = action(text, label, () => {
     if (!b.classList.contains("confirm")) {
       b.classList.add("confirm"); b.textContent = `${text}?`; b.setAttribute("aria-label", `Confirm: ${label}`);

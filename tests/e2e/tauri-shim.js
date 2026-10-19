@@ -8,6 +8,9 @@
      __msPerWord     how fast the fake voice reads (default 30 ms a word)
      __themes        the names `list_themes` returns
      __doc           the document `open_document` returns
+     __library       the shelf `library_list` starts with ({id,title,source,words,headings}); kept in
+                     sessionStorage across reloads, like the app's disk
+     __libraryFail   every library command rejects
    `window.__emit(event, payload)` fires a Tauri event at the page's listeners. */
 (() => {
   const calls = [];
@@ -21,8 +24,14 @@
     __msPerWord: 30,
     __themes: [],
     __doc: null,
+    __library: [],
   };
   for (const [k, v] of Object.entries(defaults)) if (!(k in window)) window[k] = v;
+  const texts = JSON.parse(sessionStorage.getItem("__libraryTexts") || "{}");
+  const shelf = JSON.parse(sessionStorage.getItem("__library") || "null") || window.__library;
+  const keep = () => { sessionStorage.setItem("__library", JSON.stringify(shelf)); sessionStorage.setItem("__libraryTexts", JSON.stringify(texts)) };
+  const slug = t => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "untitled";
+  const library = () => { if (window.__libraryFail) throw "The library folder can't be read."; return shelf };
 
   function emit(event, payload) {
     for (const id of Object.values(listeners[event] || {})) window[`_${id}`]?.({ event, id: 0, payload });
@@ -51,6 +60,23 @@
     save_override: () => null,
     remove_theme: () => null,
     add_theme: () => null,
+    library_list: () => [...library()].sort((a, b) => a.id.localeCompare(b.id)),
+    library_save: ({ doc }) => {
+      const words = (doc.text.match(/\S+/g) || []).length;
+      if (!words) throw "There's no text to keep.";
+      const base = slug(doc.title.trim() || "Untitled");
+      let id = base;
+      for (let n = 2; library().some(e => e.id === id); n++) { if (texts[id] === doc.text) return shelf.find(e => e.id === id); id = `${base}-${n}` }
+      const entry = { id, title: doc.title.trim() || "Untitled", source: doc.source, words, headings: doc.headings.filter(h => h.word < words) };
+      shelf.push(entry); texts[id] = doc.text; keep();
+      return entry;
+    },
+    library_open: ({ id }) => {
+      const e = library().find(e => e.id === id);
+      if (!e || !(id in texts)) throw "That text isn't in the library.";
+      return { title: e.title, text: texts[id], source: e.source, headings: e.headings };
+    },
+    library_remove: ({ id }) => { const k = library().findIndex(e => e.id === id); if (k < 0) throw "That text isn't in the library."; shelf.splice(k, 1); delete texts[id]; keep(); return null },
   };
 
   window.isTauri = true;
