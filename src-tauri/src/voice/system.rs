@@ -6,7 +6,7 @@
 //! word-boundary callbacks as events: `speech:boundary` `{id, charIndex}` and `speech:end`
 //! `{id}`, where `id` is the one the page passed to `speech_speak`.
 
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard, PoisonError};
 
 use objc2::rc::Retained;
 use objc2::runtime::ProtocolObject;
@@ -78,8 +78,15 @@ impl Delegate {
         });
         unsafe { msg_send![super(this), init] }
     }
+    /// A poisoned lock just means an earlier callback panicked; the pair inside is still valid.
+    fn current(&self) -> MutexGuard<'_, (u64, usize)> {
+        self.ivars()
+            .current
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+    }
     fn id_of(&self, u: &AVSpeechUtterance) -> Option<u64> {
-        let (id, addr) = *self.ivars().current.lock().unwrap();
+        let (id, addr) = *self.current();
         (addr == u as *const _ as usize).then_some(id)
     }
 }
@@ -133,6 +140,9 @@ pub fn speech_voices() -> Vec<Voice> {
         .collect()
 }
 
+/// The pacer speaks a few paragraphs at a time; anything near this is a page bug, not a text.
+const MAX_CHARS: usize = 20_000;
+
 /// Speaks `text` with `voice` (an id from `speech_voices`, or the system default) at `rate`
 /// times the voice's natural pace, replacing whatever was being spoken. Word boundaries and
 /// the end are reported as events tagged with `id`.
@@ -144,6 +154,9 @@ pub fn speech_speak(
     voice: Option<String>,
     rate: f32,
 ) -> Result<(), String> {
+    if text.chars().count() > MAX_CHARS {
+        return Err("That passage is too long to speak at once.".into());
+    }
     let handle = app.clone();
     app.run_on_main_thread(move || {
         with_synth(&handle, |synth, delegate| unsafe {
@@ -155,7 +168,7 @@ pub fn speech_speak(
                 u.setVoice(Some(&v));
             }
             u.setRate(av_rate(rate));
-            *delegate.ivars().current.lock().unwrap() = (id, &*u as *const _ as usize);
+            *delegate.current() = (id, &*u as *const _ as usize);
             synth.speakUtterance(&u);
         })
     })
@@ -168,7 +181,7 @@ pub fn speech_stop(app: AppHandle) -> Result<(), String> {
     let handle = app.clone();
     app.run_on_main_thread(move || {
         with_synth(&handle, |synth, delegate| unsafe {
-            *delegate.ivars().current.lock().unwrap() = (0, 0);
+            *delegate.current() = (0, 0);
             synth.stopSpeakingAtBoundary(AVSpeechBoundary::Immediate);
         })
     })

@@ -29,8 +29,8 @@ export function systemSpeech() {
   refresh();
   window.addEventListener("focus", refresh);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh() });
-  listen("speech:boundary", e => { if (current && e.payload.id === current.id) current.u.onboundary?.({ name: "word", charIndex: e.payload.charIndex }) });
-  listen("speech:end", e => { if (current && e.payload.id === current.id) { const { u } = current; current = null; synth.speaking = false; u.onend?.() } });
+  listen("speech:boundary", e => { if (current && e.payload.id === current.id) current.u.onboundary?.({ name: "word", charIndex: e.payload.charIndex }) }).catch(console.error);
+  listen("speech:end", e => { if (current && e.payload.id === current.id) { const { u } = current; current = null; synth.speaking = false; u.onend?.() } }).catch(console.error);
   Object.assign(synth, {
     speaking: false,
     getVoices: () => voices,

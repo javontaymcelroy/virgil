@@ -28,15 +28,15 @@ export function systemVoices(synth = globalThis.speechSynthesis, lang = globalTh
     .map(v => ({ id: v.voiceURI, name: v.name + (rank(v) === 0 ? " (Premium)" : rank(v) === 1 ? " (Enhanced)" : ""), lang: v.lang, premium: rank(v) < 2, voice: v }));
 }
 
-/** `deps` lets tests pass a fake synthesizer and utterance class. */
+/** `deps` lets tests pass a fake synthesizer and utterance class. `startTimeout` is how long
+ *  a voice may stay silent after `speak` before it is reported as failed. */
 export function createSpeechPacer(reader, deps = {}) {
-  const { synth = globalThis.speechSynthesis, Utterance = globalThis.SpeechSynthesisUtterance, chunking = {} } = deps;
-  let chunks = [], text = "", run = 0, cur = -1, offsets = [], last = -1, rateTimer = 0;
+  const { synth = globalThis.speechSynthesis, Utterance = globalThis.SpeechSynthesisUtterance, chunking = {}, startTimeout = 3000 } = deps;
+  let chunks = [], primed = null, run = 0, cur = -1, offsets = [], last = -1, rateTimer = 0, watchdog = 0;
 
   function prime() {
-    const now = reader.tokens.map(t => t.w).join(" ");
-    if (chunks.length && text === now) return;
-    text = now;
+    if (primed === reader.tokens) return;
+    primed = reader.tokens;
     chunks = chunkParagraphs(reader.tokens, chunking);
   }
   const chunkOf = i => chunks.findIndex(c => i >= c.from && i < c.to);
@@ -67,6 +67,7 @@ export function createSpeechPacer(reader, deps = {}) {
     u.rate = clamp(reader.settings.wpm / BASE_WPM, 0.5, 4);
     u.onboundary = e => {
       if (my !== run || e.name === "sentence") return;
+      clearTimeout(watchdog);
       // Last word whose offset is at or before the boundary: a linear scan from the previous
       // word, since boundaries arrive in order.
       let k = Math.max(0, last - at);
@@ -76,12 +77,17 @@ export function createSpeechPacer(reader, deps = {}) {
     };
     u.onend = () => {
       if (my !== run) return;
+      clearTimeout(watchdog);
       if (c + 1 < chunks.length) speak(c + 1, chunks[c + 1].from); else reader.finish();
     };
     u.onerror = e => { if (my === run && e.error !== "interrupted" && e.error !== "canceled") reader.fail(e.error || "Speech failed.") };
     synth.cancel();
     synth.speak(u);
     if (last < 0) { last = at; reader.advanceTo(at) }
+    // A voice that accepts the text but never speaks (a broken download, say) would otherwise
+    // leave the reader "playing" in silence for good.
+    clearTimeout(watchdog);
+    watchdog = setTimeout(() => { if (my === run) reader.fail("The system voice didn't start. Try another voice.") }, startTimeout + s.length * 5);
   }
 
   function start(index) {
@@ -90,7 +96,7 @@ export function createSpeechPacer(reader, deps = {}) {
     speak(chunkOf(index), index);
   }
 
-  function stop() { run++; clearTimeout(rateTimer); synth && synth.cancel() }
+  function stop() { run++; clearTimeout(rateTimer); clearTimeout(watchdog); synth && synth.cancel() }
 
   /** The slider changed while reading: restart from the current word with the new rate, once
    *  the slider has settled. */
@@ -99,5 +105,7 @@ export function createSpeechPacer(reader, deps = {}) {
     rateTimer = setTimeout(() => { if (cur >= 0 && synth.speaking) speak(cur, Math.max(last, chunks[cur].from)) }, 300);
   }
 
-  return { start, stop, liveWpm: () => reader.settings.wpm, setRate, prime };
+  /** What is actually spoken: the slider's pace, capped at four times the voice's natural one. */
+  const liveWpm = () => Math.min(reader.settings.wpm, BASE_WPM * 4);
+  return { start, stop, liveWpm, setRate, prime };
 }

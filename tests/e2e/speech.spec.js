@@ -1,6 +1,6 @@
 /* Read aloud through the IPC shim: what the page asks Rust for, and how it copes when the
    voice goes quiet or the user scrubs. */
-import { test, expect, finding, boot, SHORT, drop, calls } from "./helpers.js";
+import { test, expect, boot, SHORT, drop, calls } from "./helpers.js";
 
 const VOICE = { storage: { voice: true, voiceId: "com.apple.voice.premium.en-US.Ava" } };
 
@@ -16,7 +16,6 @@ test("Space speaks the first chunk with the chosen voice and follows its word bo
 });
 
 test("a voice that never starts is reported and playback stops", async ({ page }) => {
-  finding("B1");
   await boot(page, { ...VOICE, knobs: { __speechSilent: true } });
   await drop(page, SHORT);
   await page.keyboard.press("Space");
@@ -33,7 +32,6 @@ test("a voice that fails to start is reported", async ({ page }) => {
 });
 
 test("dragging the position slider restarts speech once, not once per pixel", async ({ page }) => {
-  finding("B10");
   await boot(page, { ...VOICE, knobs: { __msPerWord: 400 } });
   await drop(page, SHORT);
   await page.keyboard.press("Space");

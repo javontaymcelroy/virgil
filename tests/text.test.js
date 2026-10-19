@@ -69,6 +69,12 @@ test("chunkParagraphs groups whole paragraphs", () => {
   tiles(c, tokens.length);
 });
 
+test("chunkParagraphs cuts a text with no sentence ends at twice maxWords", () => {
+  const { tokens } = tokenize(Array.from({ length: 25 }, (_, i) => "w" + i).join(" "));
+  const chunks = chunkParagraphs(tokens, { maxWords: 5 });
+  assert.deepEqual(chunks.map(c => c.to - c.from), [10, 10, 5]);
+});
+
 test("chunkParagraphs splits a wall of text at a sentence end past maxWords", () => {
   const { tokens } = tokenize(text(30, 30, 30, 30));
   const c = chunkParagraphs(tokens, { paras: 4, maxWords: 50 });

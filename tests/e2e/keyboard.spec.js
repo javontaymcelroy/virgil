@@ -1,10 +1,9 @@
 /* Keyboard: the reader's shortcuts must not steal keys from controls that use them. */
-import { test, expect, finding, boot, SHORT, drop } from "./helpers.js";
+import { test, expect, boot, SHORT, drop } from "./helpers.js";
 
 test.beforeEach(async ({ page }) => { await boot(page); await drop(page, SHORT) });
 
 test("Space on a focused checkbox toggles the checkbox, not playback", async ({ page }) => {
-  finding("A1");
   const box = page.locator("#optPunct");
   await box.focus();
   await page.keyboard.press("Space");
@@ -13,7 +12,6 @@ test("Space on a focused checkbox toggles the checkbox, not playback", async ({ 
 });
 
 test("Space on a focused button activates that button", async ({ page }) => {
-  finding("A1");
   await page.locator("#fwd").focus();
   await page.keyboard.press("Space");
   await expect(page.locator("#pos")).toHaveText("Word 6 of 10");
@@ -21,14 +19,12 @@ test("Space on a focused button activates that button", async ({ page }) => {
 });
 
 test("arrow keys on the position slider step one word, not one sentence", async ({ page }) => {
-  finding("A1");
   await page.locator("#scrub").focus();
   await page.keyboard.press("ArrowRight");
   await expect(page.locator("#pos")).toHaveText("Word 2 of 10");
 });
 
 test("arrow keys inside an open drawer are left to the drawer", async ({ page }) => {
-  finding("A1");
   await page.keyboard.press("Meta+,");
   await expect(page.locator("#settingsPanel")).toHaveClass(/is-open/);
   await page.keyboard.press("ArrowUp");
@@ -36,19 +32,16 @@ test("arrow keys inside an open drawer are left to the drawer", async ({ page })
 });
 
 test("Enter on the stage starts reading, like a button", async ({ page }) => {
-  finding("A5");
   await page.locator("#stage").focus();
   await page.keyboard.press("Enter");
   await expect(page.locator("#play")).toHaveText("Pause");
 });
 
 test("passage words are buttons, not bare spans", async ({ page }) => {
-  finding("A5");
   await expect(page.locator("#ctxText button, #ctxText [role=button]").first()).toBeAttached();
 });
 
 test("shortcuts are declared on their controls", async ({ page }) => {
-  finding("A11");
   await expect(page.locator("#play")).toHaveAttribute("aria-keyshortcuts", /Space/);
   await expect(page.locator("#back")).toHaveAttribute("aria-keyshortcuts", /ArrowLeft/);
 });

@@ -68,12 +68,12 @@ const DERIVED = `
   --track-fill: var(--accent);
   --thumb: var(--accent);
   --surface-sunken: color-mix(in srgb, var(--bg) 94%, var(--text));
-  --text-faint: color-mix(in srgb, var(--text-muted) 70%, var(--bg));
+  --text-faint: color-mix(in srgb, var(--text-muted) 94%, var(--bg));
   --border: color-mix(in srgb, var(--text) 12%, transparent);
   --border-strong: color-mix(in srgb, var(--text) 26%, transparent);
   --track: color-mix(in srgb, var(--text) 14%, transparent);
   --selection: color-mix(in srgb, var(--pivot) 24%, transparent);
-  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
   --text-sm: calc(var(--text-md) - 2px);
   --text-lg: calc(var(--text-md) + 5px);
   --text-xl: calc(var(--text-md) + 13px);
@@ -156,8 +156,8 @@ function action(text, label, onClick) {
 function confirmButton(text, label, onConfirm) {
   const b = action(text, label, () => {
     if (!b.classList.contains("confirm")) {
-      b.classList.add("confirm"); b.textContent = `${text}?`;
-      setTimeout(() => { b.classList.remove("confirm"); b.textContent = text }, 3000);
+      b.classList.add("confirm"); b.textContent = `${text}?`; b.setAttribute("aria-label", `Confirm: ${label}`);
+      setTimeout(() => { b.classList.remove("confirm"); b.textContent = text; b.setAttribute("aria-label", label) }, 3000);
       return;
     }
     onConfirm();
@@ -484,7 +484,7 @@ export function initTheme() {
   setTimeout(ready, 1500); // never stay hidden if a theme is slow to load
   render();
   if (isTauri()) {
-    refresh().then(() => { if (edited.includes(current)) apply(current) });
+    refresh().then(() => { if (edited.includes(current)) apply(current) }).catch(console.error);
     $("addTheme").addEventListener("click", add);
     $("newTheme").addEventListener("click", () => openEditor(null, true));
     $("customTheme").addEventListener("click", () => openEditor(null));

@@ -17,34 +17,22 @@ jobs:
       # (see README → Signing). Without them the build is unsigned.
       HAS_SIGNING: ${{ secrets.APPLE_CERTIFICATE != '' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
         with:
           targets: aarch64-apple-darwin,x86_64-apple-darwin
 
-      - uses: swatinem/rust-cache@v2
+      - uses: swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           workspaces: src-tauri -> target
 
       - run: npm ci
-
-      - name: Load signing secrets
-        if: env.HAS_SIGNING == 'true'
-        run: |
-          {
-            echo "APPLE_CERTIFICATE=${{ secrets.APPLE_CERTIFICATE }}"
-            echo "APPLE_CERTIFICATE_PASSWORD=${{ secrets.APPLE_CERTIFICATE_PASSWORD }}"
-            echo "APPLE_SIGNING_IDENTITY=${{ secrets.APPLE_SIGNING_IDENTITY }}"
-            echo "APPLE_ID=${{ secrets.APPLE_ID }}"
-            echo "APPLE_PASSWORD=${{ secrets.APPLE_PASSWORD }}"
-            echo "APPLE_TEAM_ID=${{ secrets.APPLE_TEAM_ID }}"
-          } >> "$GITHUB_ENV"
 
       # The release notes say whether this build is signed, and if not, how to open it.
       - name: Write release notes
@@ -60,9 +48,17 @@ jobs:
           fi
           { echo "RELEASE_NOTES<<EOF"; echo "$NOTES"; echo "EOF"; } >> "$GITHUB_ENV"
 
-      - uses: tauri-apps/tauri-action@v0
+      # The signing secrets are given only to the two steps that sign, never to the whole job.
+      # tauri-action signs and notarizes when they are set and builds unsigned when they are empty.
+      - uses: tauri-apps/tauri-action@84b9d35b5fc46c1e45415bdb6144030364f7ebc5 # v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           args: --target universal-apple-darwin
           tagName: ${{ github.ref_name }}
@@ -77,9 +73,12 @@ jobs:
         if: env.HAS_SIGNING == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           dmg=$(ls src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg)
           xcrun notarytool submit "$dmg" --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_PASSWORD" --wait
           xcrun stapler staple "$dmg"
           spctl -a -vvv -t open --context context:primary-signature "$dmg"
-          gh release upload "${{ github.ref_name }}" "$dmg" --clobber
+          gh release upload "$GITHUB_REF_NAME" "$dmg" --clobber

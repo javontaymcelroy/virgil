@@ -3,7 +3,7 @@
 
 import { tokenize, orp, sentenceIndex, sentenceJump, formatDuration } from "./text.js";
 import { createTimerPacer } from "./pacer.js";
-import { createSpeechPacer, systemVoices } from "./speechPacer.js";
+import { createSpeechPacer, systemVoices, BASE_WPM } from "./speechPacer.js";
 import { systemSpeech } from "../voice/systemSpeech.js";
 import { setStatus } from "../import.js";
 import { store } from "../store.js";
@@ -25,7 +25,7 @@ export function createReader() {
   const timer = createTimerPacer(face), mac = systemSpeech(), speech = createSpeechPacer(face, mac);
   let pacer = timer;
 
-  let starts = [0], idx = 0, playing = false, title = "", session = null, wakeLock = null;
+  let starts = [0], idx = 0, playing = false, title = "", session = null, wakeLock = null, kept = true, seekTimer = 0;
 
   /* ---------- display ---------- */
   function render() {
@@ -48,16 +48,20 @@ export function createReader() {
     const n = face.tokens.length || 1;
     const pct = Math.round(idx / Math.max(1, n - 1) * 100);
     const scrub = $("scrub");
-    scrub.max = Math.max(0, n - 1); scrub.value = idx; scrub.style.setProperty("--fill", pct + "%");
-    $("pos").textContent = `Word ${(idx + 1).toLocaleString()} of ${n.toLocaleString()}`;
+    const pos = `Word ${(idx + 1).toLocaleString()} of ${n.toLocaleString()}`;
+    scrub.max = Math.max(0, n - 1); scrub.value = idx; scrub.style.setProperty("--fill", pct + "%"); scrub.setAttribute("aria-valuetext", pos);
+    $("pos").textContent = pos;
     $("pct").textContent = pct + "%";
-    $("eta").textContent = formatDuration((n - idx) / settings.wpm * 60000 * (settings.punct ? 1.18 : 1)) + " left";
-    $("wpmLive").textContent = (playing ? pacer.liveWpm() : settings.wpm) + " wpm";
+    // A voice can't go faster than four times its natural pace, whatever the slider says.
+    const pace = playing ? pacer.liveWpm() : settings.voice ? Math.min(settings.wpm, BASE_WPM * 4) : settings.wpm;
+    $("eta").textContent = formatDuration((n - idx) / pace * 60000 * (settings.punct ? 1.18 : 1)) + " left";
+    $("wpmLive").textContent = pace + " wpm";
   }
 
   /** The passage around the current word: the previous sentence through the next two. Rebuilt
    *  only when that window moves; otherwise just the highlight shifts, so it can follow every
-   *  word while reading. Each word is a span; clicking one seeks there. */
+   *  word while reading. Each word is a button (out of the tab order: ←/→ is the keyboard way
+   *  to move); clicking one seeks there. */
   let ctxRange = null;
   function showContext() {
     const tokens = face.tokens;
@@ -68,7 +72,7 @@ export function createReader() {
     if (!ctxRange || ctxRange[0] !== a || ctxRange[1] !== b) {
       ctxRange = [a, b];
       box.replaceChildren(...tokens.slice(a, b).flatMap((t, k) => {
-        const w = document.createElement("span"); w.textContent = t.w; w.dataset.i = a + k;
+        const w = document.createElement("button"); w.type = "button"; w.tabIndex = -1; w.textContent = t.w; w.dataset.i = a + k;
         return [w, document.createTextNode(t.para ? "  \u00b6  " : " ")];
       }));
     }
@@ -104,16 +108,25 @@ export function createReader() {
   }
   function stop(finished) {
     if (!playing) return;
-    playing = false; pacer.stop(); releaseScreen();
+    playing = false; clearTimeout(seekTimer); pacer.stop(); releaseScreen();
     $("play").textContent = finished ? "Again" : "Read";
     $("hint").textContent = finished ? "Finished." : "Paused.";
     logSession(); savePos(); updateMeta();
   }
   const toggle = () => playing ? stop(false) : play();
 
-  function seek(i) {
+  /** Moves to word `i`. While a voice is reading, dragging the slider sends a seek per pixel,
+   *  so speech restarts only once the slider rests (`settled`: the slider's change event). */
+  function seek(i, settled = true) {
     idx = Math.max(0, Math.min(face.tokens.length - 1, i));
-    if (playing) pacer.start(idx); else render();
+    clearTimeout(seekTimer);
+    if (!playing) {
+      render();
+      if ($("play").textContent === "Again") { $("play").textContent = "Read"; $("hint").textContent = "Paused." }
+    } else if (pacer === speech && !settled) {
+      pacer.stop(); render();
+      seekTimer = setTimeout(() => { if (playing) pacer.start(idx) }, 150);
+    } else pacer.start(idx);
     savePos();
   }
   const jumpSentence = dir => seek(sentenceJump(starts, idx, dir));
@@ -137,12 +150,19 @@ export function createReader() {
   function fillVoices() {
     const sel = $("voice"), voices = systemVoices(mac.synth);
     sel.replaceChildren(...voices.map(v => { const o = document.createElement("option"); o.value = v.id; o.textContent = v.name; return o }));
-    if (!voices.some(v => v.id === settings.voiceId)) { settings.voiceId = voices[0]?.id || ""; store.set("voiceId", settings.voiceId) }
+    // No voices yet: the bridge may still be answering, or none are installed. The saved pick
+    // is kept either way, so it is still there when the list arrives.
+    sel.disabled = !voices.length;
+    if (!voices.length) sel.appendChild(new Option("No voices installed"));
+    else if (!voices.some(v => v.id === settings.voiceId)) { settings.voiceId = voices[0].id; store.set("voiceId", settings.voiceId) }
     sel.value = settings.voiceId;
     $("voiceNote").hidden = voices.some(v => v.premium);
   }
 
-  async function lockScreen() { try { if ("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen") } catch { wakeLock = null } }
+  async function lockScreen() {
+    try { if ("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen") } catch { wakeLock = null }
+    if (!playing) releaseScreen();   // stopped while the request was pending
+  }
   function releaseScreen() { try { wakeLock && wakeLock.release() } catch { /* already released */ } wakeLock = null }
 
   /* ---------- history ---------- */
@@ -194,8 +214,9 @@ export function createReader() {
     $("input").value = doc.text;
     $("play").textContent = "Read";
     $("hint").textContent = idx ? "Resuming where you left off. Press Space." : "Click the reader or press Space to begin.";
-    // A book too big for local storage simply isn't kept; the sample opens next launch instead.
-    if (remember && !store.set("doc", { title: doc.title, text: doc.text, source: doc.source || "" })) store.del("doc");
+    // A book too big for local storage isn't kept (see `kept`); the sample opens next launch instead.
+    kept = !remember || store.set("doc", { title: doc.title, text: doc.text, source: doc.source || "" });
+    if (!kept) store.del("doc");
     render(); savePos();
     const w = $("word"); w.classList.remove("enter"); void w.offsetWidth; w.classList.add("enter");
     return true;
@@ -208,19 +229,28 @@ export function createReader() {
     $("stage").addEventListener("click", toggle);
     $("back").addEventListener("click", () => jumpSentence(-1));
     $("fwd").addEventListener("click", () => jumpSentence(1));
-    $("ctxText").addEventListener("click", e => { const i = e.target.dataset.i; if (i !== undefined) seek(+i) });
-    $("scrub").addEventListener("input", e => seek(+e.target.value));
+    $("ctxText").addEventListener("click", e => { const i = e.target.dataset.i; if (i !== undefined) { seek(+i); e.target.blur() } });
+    $("scrub").addEventListener("input", e => seek(+e.target.value, false));
+    $("scrub").addEventListener("change", e => seek(+e.target.value));
     $("wpm").addEventListener("input", e => setWpm(+e.target.value));
     $("chunkSeg").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setChunk(+b.dataset.n) });
     $("optPunct").addEventListener("change", e => { settings.punct = e.target.checked; store.set("punct", settings.punct); updateMeta() });
     $("optRamp").addEventListener("change", e => { settings.ramp = e.target.checked; store.set("ramp", settings.ramp) });
     $("optVoice").checked = settings.voice; fillVoices();
     mac.synth?.addEventListener("voiceschanged", fillVoices);
-    $("optVoice").addEventListener("change", e => { settings.voice = e.target.checked; store.set("voice", settings.voice) });
-    $("voice").addEventListener("change", e => { stop(false); settings.voiceId = e.target.value; store.set("voiceId", settings.voiceId) });
+    // Changing the voice or switching it on or off while reading carries on from the current word.
+    $("optVoice").addEventListener("change", e => {
+      settings.voice = e.target.checked; store.set("voice", settings.voice);
+      if (playing) { pacer.stop(); pacer = settings.voice ? speech : timer; pacer.start(idx) }
+      updateMeta();
+    });
+    $("voice").addEventListener("change", e => { settings.voiceId = e.target.value; store.set("voiceId", settings.voiceId); if (playing && pacer === speech) pacer.start(idx) });
     document.addEventListener("keydown", e => {
-      if (e.metaKey || e.ctrlKey || e.altKey || e.target.matches("textarea, input:not([type=range]):not([type=checkbox]), select")) return;
+      // Only the page itself and the stage take these keys: a focused button, checkbox, slider,
+      // field or drawer keeps its own (Space activates, arrows step).
+      if (e.metaKey || e.ctrlKey || e.altKey || (e.target !== document.body && e.target.id !== "stage")) return;
       const keys = { " ": toggle, ArrowLeft: () => jumpSentence(-1), ArrowRight: () => jumpSentence(1), ArrowUp: () => setWpm(settings.wpm + 25), ArrowDown: () => setWpm(settings.wpm - 25) };
+      if (e.key === "Enter" && e.target.id === "stage") keys.Enter = toggle;
       const fn = keys[e.key];
       if (fn) { e.preventDefault(); fn() }
     });
@@ -232,5 +262,7 @@ export function createReader() {
   return {
     load, play, stop: () => stop(false), toggle, seek,
     get wordCount() { return face.tokens.length },
+    /** False when the last `remember` load didn't fit in local storage. */
+    get kept() { return kept },
   };
 }

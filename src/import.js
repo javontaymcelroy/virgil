@@ -5,21 +5,25 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { titleFor } from "./reader/text.js";
-import { openPanel } from "./panel.js";
 
 const $ = id => document.getElementById(id);
 
-/** Errors open the side panel so they're never shown in a closed one. */
+/** The status line sits under the reader, so it is seen and announced whether or not a panel is open. */
 export function setStatus(message, kind) {
   const s = $("status"); s.textContent = message; s.className = "status" + (kind ? " " + kind : "");
-  if (kind === "err") openPanel();
 }
 
-/** `show(doc)` puts a document on the reader and returns false if it has no words. */
+/** `show(doc)` puts a document on the reader: null if it has no words, else a note to add to
+ *  the status ("" when there is nothing to add). */
 export function wireImport(show) {
+  function loaded(doc, from) {
+    const note = show(doc);
+    if (note === null) return false;
+    setStatus(`Loaded ${countWords(doc.text).toLocaleString()} words${from}.` + (note ? " " + note : ""), note ? "err" : "ok");
+    return true;
+  }
   function accept(doc) {
-    if (show(doc)) setStatus(`Loaded ${countWords(doc.text).toLocaleString()} words from ${doc.source}.`, "ok");
-    else setStatus(`${doc.source} has no readable words.`, "err");
+    if (!loaded(doc, ` from ${doc.source}`)) setStatus(`${doc.source} has no readable words.`, "err");
   }
 
   async function openFile() {
@@ -33,8 +37,7 @@ export function wireImport(show) {
 
   function readPasted(text) {
     const doc = { title: titleFor(text), text, source: "Pasted text" };
-    if (show(doc)) setStatus(`Loaded ${countWords(text).toLocaleString()} words.`, "ok");
-    else setStatus("There's no text to read. Paste some first.", "err");
+    if (!loaded(doc, "")) setStatus("There's no text to read. Paste some first.", "err");
   }
 
   $("open").addEventListener("click", openFile);

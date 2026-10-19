@@ -11,10 +11,10 @@ const reader = createReader();
 
 // Files and pasted text are kept so they reopen where you left off.
 wireImport(doc => {
-  if (!reader.load(doc, { remember: true })) return false;
+  if (!reader.load(doc, { remember: true })) return null;
   document.getElementById("hint").textContent = `${doc.source || "Your text"} is ready. Press Space to begin.`;
-  window.scrollTo({ top: 0, behavior: "smooth" });
-  return true;
+  window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  return reader.kept ? "" : "Too long to keep between launches; open it again next time.";
 });
 
 document.getElementById("sample").addEventListener("click", () => {

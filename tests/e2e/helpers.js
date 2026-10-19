@@ -32,14 +32,15 @@ export const contrast = (page, selector, prop = "color") => page.evaluate(([sel,
   const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4 }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b) };
   const bg = bgOf(el.parentElement || el);
   let fg;
+  const ratio = fg => { const [a, b] = [lum(fg), lum(bg)].sort((x, y) => y - x); return (a + 0.05) / (b + 0.05) };
   if (prop === "ring") {
+    // The best-contrasting ring colour counts: a two-tone ring (page colour, then accent) is drawn to be seen on any button.
     const cs = getComputedStyle(el);
     const src = cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0 ? cs.outlineColor : cs.boxShadow;
-    const m = src.match(/rgba?\([^)]*\)/); if (!m) return 0;
-    fg = over(rgb(m[0]), bg);
-  } else fg = over(rgb(getComputedStyle(el)[prop]), bg);
-  const [a, b] = [lum(fg), lum(bg)].sort((x, y) => y - x);
-  return (a + 0.05) / (b + 0.05);
+    const colors = src.match(/rgba?\([^)]*\)/g) || [];
+    return Math.max(0, ...colors.map(c => ratio(over(rgb(c), bg))));
+  }
+  return ratio(over(rgb(getComputedStyle(el)[prop]), bg));
 }, [selector, prop]);
 
 /** The base test plus: any uncaught page error fails the test. */
@@ -51,7 +52,4 @@ export const test = base.extend({
     expect(errors, "uncaught page errors").toEqual([]);
   },
 });
-/** Marks a test that confirms an open finding in docs/qa-2026-10.md: it is expected to fail
- *  until the finding is fixed, and Playwright flags it the moment it starts passing. */
-export const finding = id => test.fail(true, `QA finding ${id}, see docs/qa-2026-10.md`);
 export { expect };

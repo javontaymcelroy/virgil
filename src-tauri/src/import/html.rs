@@ -32,6 +32,8 @@ const SKIPPED: &[&str] = &["head", "script", "style", "noscript", "svg", "math"]
 
 pub fn to_text(html: &str) -> String {
     let mut out = String::with_capacity(html.len() / 2);
+    // Lowercased once for case-insensitive searches; ASCII lowercasing keeps every offset.
+    let lower = html.to_ascii_lowercase();
     let mut rest = html;
     while let Some(lt) = rest.find('<') {
         push_text(&mut out, &rest[..lt]);
@@ -61,7 +63,9 @@ pub fn to_text(html: &str) -> String {
 
         if !closing && !self_closing && SKIPPED.contains(&name.as_str()) {
             let close = format!("</{name}");
-            rest = find_ci(rest, &close)
+            let at = html.len() - rest.len();
+            rest = lower[at..]
+                .find(&close)
                 .and_then(|i| rest[i..].find('>').map(|j| &rest[i + j + 1..]))
                 .unwrap_or("");
         } else if name == "br" {
@@ -86,12 +90,6 @@ fn push_text(out: &mut String, raw: &str) {
             out.push(c);
         }
     }
-}
-
-fn find_ci(haystack: &str, needle: &str) -> Option<usize> {
-    haystack
-        .to_ascii_lowercase()
-        .find(&needle.to_ascii_lowercase())
 }
 
 fn decode_entities(s: &str) -> String {
@@ -193,7 +191,6 @@ mod adversarial {
 
     /// S2: every skipped tag lowercases the rest of the chapter to find its close.
     #[test]
-    #[ignore = "QA finding S2, see docs/qa-2026-10.md; run with --ignored"]
     fn skipped_tags_scale_linearly() {
         let html = "<script></script>".repeat(20_000);
         let start = std::time::Instant::now();

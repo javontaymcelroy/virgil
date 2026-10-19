@@ -12,7 +12,7 @@
 <!-- The window has no title bar: this strip is where you drag it, and it clears the traffic lights. -->
 <div class="titlebar" data-tauri-drag-region></div>
 <div class="app">
-<div class="wrap">
+<main class="wrap">
   <header class="masthead">
     <h1 class="brand">Virgil</h1>
     <div class="titles">
@@ -26,7 +26,7 @@
   </header>
 
   <section class="lectern" aria-label="Reader">
-    <div class="stage" id="stage" tabindex="0" role="button" aria-label="Play or pause">
+    <div class="stage" id="stage" tabindex="0" role="button" aria-label="Play or pause" aria-keyshortcuts="Space">
       <div class="guide"></div>
       <div class="rule"></div>
       <div class="word" id="word" aria-live="off"><span class="l"></span><span class="p">·</span><span class="r"></span></div>
@@ -35,16 +35,17 @@
       <div class="stage-meta"><span class="label" id="wpmLive">300 wpm</span><span class="label" id="eta">— left</span></div>
       <div class="drop-hint" aria-hidden="true">Drop to read</div>
     </div>
-    <p class="hint" id="hint">Click the reader or press Space to begin.</p>
+    <p class="hint" id="hint" aria-live="polite">Click the reader or press Space to begin.</p>
   </section>
+  <p class="status" id="status" role="status"></p>
 
   <div class="card context" id="context" aria-label="Current passage"><span id="ctxText"></span></div>
 
   <section class="controls" aria-label="Controls">
     <div class="transport">
-      <div class="side"><button class="btn" id="back" type="button" title="Previous sentence (←)">‹ Sentence</button></div>
-      <button class="btn btn--primary btn--lg" id="play" type="button">Read</button>
-      <div class="side right"><button class="btn" id="fwd" type="button" title="Next sentence (→)">Sentence ›</button></div>
+      <div class="side"><button class="btn" id="back" type="button" title="Previous sentence (←)" aria-keyshortcuts="ArrowLeft">‹ Sentence</button></div>
+      <button class="btn btn--primary btn--lg" id="play" type="button" aria-keyshortcuts="Space">Read</button>
+      <div class="side right"><button class="btn" id="fwd" type="button" title="Next sentence (→)" aria-keyshortcuts="ArrowRight">Sentence ›</button></div>
     </div>
 
     <div class="scrub">
@@ -56,7 +57,7 @@
       <div class="setting">
         <span class="label">Pace</span>
         <span class="val"><span id="wpmVal">300</span><small class="label">wpm</small></span>
-        <input type="range" id="wpm" min="100" max="1000" step="25" value="300" aria-label="Words per minute">
+        <input type="range" id="wpm" min="100" max="1000" step="25" value="300" aria-label="Pace, words per minute" aria-keyshortcuts="ArrowUp ArrowDown">
       </div>
       <div class="setting">
         <span class="label">Words per flash</span>
@@ -94,7 +95,7 @@
 
   <p class="footnote">Comprehension tends to slip as pace climbs, and above roughly 400 wpm most readers stop sounding words out in their head. Pause often; the passage beneath the reader follows along, and clicking a word there jumps to it.</p>
 
-</div>
+</main>
 
 <aside class="drawer" id="textPanel" aria-labelledby="textH" inert>
   <div class="drawer-inner panel">
@@ -104,13 +105,12 @@
     </div>
     <p>Paste anything, open a .txt, .md, .pdf or .epub file, or drop one on the window. Files are read on your Mac and never uploaded.</p>
     <label class="label" for="input">Text to read</label>
-    <textarea id="input" class="textarea" placeholder="Paste text here…"></textarea>
+    <textarea id="input" class="textarea" placeholder="Paste text here…" spellcheck="false"></textarea>
     <div class="row">
       <button class="btn" id="useText" type="button">Read this text</button>
       <button class="btn" id="open" type="button">Open file…</button>
-      <button class="btn btn--ghost" id="sample" type="button">Restore sample</button>
+      <button class="btn" id="sample" type="button">Restore sample</button>
     </div>
-    <span class="status" id="status" role="status"></span>
   </div>
 </aside>
 
@@ -131,7 +131,7 @@
       <form class="theme-editor" id="themeBuilder" hidden>
         <h3 class="label" id="themeBuilderH">New theme</h3>
         <label class="label" for="builderName">Name</label>
-        <input class="input" id="builderName" type="text" maxlength="40" autocomplete="off" spellcheck="false" placeholder="Midnight">
+        <input class="input" id="builderName" type="text" maxlength="40" autocomplete="off" spellcheck="false">
         <div class="builder-fields" id="builderFields"></div>
         <div class="row">
           <button class="btn btn--primary" type="submit">Save theme</button>
@@ -141,7 +141,7 @@
       <form class="theme-editor" id="themeEditor" hidden>
         <h3 class="label" id="themeEditorH">Custom theme</h3>
         <label class="label" for="themeName">Name</label>
-        <input class="input" id="themeName" type="text" maxlength="40" autocomplete="off" spellcheck="false" placeholder="Midnight">
+        <input class="input" id="themeName" type="text" maxlength="40" autocomplete="off" spellcheck="false">
         <label class="label" for="themeCss">CSS</label>
         <textarea class="textarea code" id="themeCss" spellcheck="false" placeholder=":root {&#10;  --bg: #101418;&#10;  --text: #e8e6e3;&#10;  --pivot: #ff8a3d;&#10;}"></textarea>
         <div class="row">

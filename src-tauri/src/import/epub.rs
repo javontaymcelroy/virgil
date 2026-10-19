@@ -1,9 +1,34 @@
 //! EPUB: chapters in spine order, each converted from XHTML to paragraphs.
 
 use super::html;
+use std::io::{self, Read};
 use std::path::Path;
 
+/// The 200 MB cap in mod.rs is on the compressed file; these bound what it may inflate to.
+const MAX_ENTRY: u64 = 32 * 1024 * 1024;
+const MAX_TOTAL: u64 = 256 * 1024 * 1024;
+const TOO_BIG: &str = "This EPUB is too large to open.";
+
+/// Inflates every entry into a sink first, stopping at the caps, so nothing the epub crate
+/// reads afterwards can be bigger than it claims. (A zip header's size field is untrusted.)
+fn check_inflated_size(path: &Path) -> Result<(), String> {
+    let file = std::fs::File::open(path).map_err(|e| e.to_string())?;
+    let mut zip = zip::ZipArchive::new(file).map_err(|e| e.to_string())?;
+    let mut total = 0;
+    for i in 0..zip.len() {
+        let entry = zip.by_index(i).map_err(|e| e.to_string())?;
+        let n =
+            io::copy(&mut entry.take(MAX_ENTRY + 1), &mut io::sink()).map_err(|e| e.to_string())?;
+        total += n;
+        if n > MAX_ENTRY || total > MAX_TOTAL {
+            return Err(TOO_BIG.into());
+        }
+    }
+    Ok(())
+}
+
 pub fn to_text(path: &Path) -> Result<(Option<String>, String), String> {
+    check_inflated_size(path)?;
     let mut doc = epub::doc::EpubDoc::new(path)
         .map_err(|_| "Couldn't read this EPUB. It may be damaged or DRM-protected.".to_string())?;
     let title = doc.get_title();
@@ -50,16 +75,21 @@ mod tests {
 
     /// S1: the 200 MB cap is on the compressed file, so a tiny EPUB can inflate without limit.
     #[test]
-    #[ignore = "QA finding S1, see docs/qa-2026-10.md; run with --ignored"]
     fn refuses_a_chapter_that_inflates_past_the_cap() {
         let path = epub_with_chapter(64 * 1024 * 1024);
         let packed = std::fs::metadata(&path).unwrap().len();
         assert!(packed < 1024 * 1024, "{packed} bytes packed");
         let result = super::super::import_path(&path);
         let _ = std::fs::remove_file(&path);
-        assert!(
-            result.is_err(),
-            "a 64 MB chapter from a {packed}-byte file was accepted"
-        );
+        assert_eq!(result.unwrap_err(), super::TOO_BIG);
+    }
+
+    #[test]
+    fn a_normal_chapter_still_opens() {
+        let path = epub_with_chapter(64 * 1024);
+        let doc = super::super::import_path(&path).unwrap();
+        let _ = std::fs::remove_file(&path);
+        assert_eq!(doc.title, "Bomb");
+        assert!(doc.text.starts_with("word word"));
     }
 }

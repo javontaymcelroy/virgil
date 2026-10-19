@@ -24,7 +24,7 @@ function harness(voices = [{ voiceURI: "com.apple.voice.premium.en-US.Ava", name
     advanceTo(i) { this.shown.push(i) }, finish() { this.finished = true }, fail(m) { this.fails.push(m) },
   };
   const synth = { spoken: [], cancels: 0, speaking: false, getVoices: () => voices, speak(u) { synth.spoken.push(u); synth.speaking = true }, cancel() { synth.cancels++; synth.speaking = false } };
-  const pacer = createSpeechPacer(reader, { synth, Utterance: FakeUtterance, chunking: { paras: 2 } });
+  const pacer = createSpeechPacer(reader, { synth, Utterance: FakeUtterance, chunking: { paras: 2 }, startTimeout: 40 });
   return { reader, synth, pacer, tokens, current: () => synth.spoken.at(-1) };
 }
 
@@ -92,6 +92,27 @@ test("a rate change restarts from the current word once the slider settles", asy
   assert.equal(h.synth.spoken.length, 2, "one restart, not two");
   assert.ok(h.current().text.startsWith("s0w4"));
   assert.equal(h.current().rate, 1);
+});
+
+test("a voice that stays silent is reported once the watchdog runs out; one that speaks is not", async () => {
+  const h = harness();
+  h.pacer.start(0);
+  const budget = 40 + h.current().text.length * 5 + 100;
+  await new Promise(r => setTimeout(r, budget));
+  assert.equal(h.reader.fails.length, 1);
+  assert.match(h.reader.fails[0], /didn't start/);
+  const g = harness();
+  g.pacer.start(0); g.current().word(1);
+  await new Promise(r => setTimeout(r, budget));
+  assert.deepEqual(g.reader.fails, []);
+});
+
+test("the live pace is capped at four times the voice's natural one", () => {
+  const h = harness();
+  h.reader.settings.wpm = 1000;
+  assert.equal(h.pacer.liveWpm(), BASE_WPM * 4);
+  h.reader.settings.wpm = 300;
+  assert.equal(h.pacer.liveWpm(), 300);
 });
 
 test("systemVoices drops novelty voices and puts Premium first", () => {
