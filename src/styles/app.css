@@ -53,11 +53,14 @@ h1, h2, p { margin: 0; }
 .card { background: var(--surface-fill); border: var(--border-width) solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
 
 /* Reader */
-.lectern { background: var(--surface-fill); border: var(--border-width) solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+/* The stage fills the card and the word band is centred on it; the pace line and the hint
+   are anchored at the bottom so they don't push the band up. */
+.lectern { display: grid; background: var(--surface-fill); border: var(--border-width) solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+.lectern > .stage, .lectern > .hint { grid-area: 1 / 1; }
+.lectern { --hint-h: calc(var(--text-sm) * 1.5 + var(--space-4)); }
 .stage {
   position: relative;
-  height: var(--stage-h);
-  padding: var(--space-5) 0 var(--space-7);
+  height: calc(var(--stage-h) + var(--hint-h));
   display: flex; flex-direction: column; justify-content: center;
   cursor: pointer; user-select: none; -webkit-user-select: none;
   transition: background-color var(--dur) var(--ease);
@@ -79,9 +82,9 @@ h1, h2, p { margin: 0; }
 .word.chunk { display: block; text-align: center; white-space: normal; font-size: var(--word-size-chunk); }
 .word.enter { animation: word-in calc(var(--dur) * 3) var(--ease) both; }
 @keyframes word-in { from { opacity: 0; transform: translateY(6px); } }
-.stage-meta { position: absolute; left: 0; right: 0; bottom: var(--space-4); display: flex; justify-content: space-between; padding: 0 var(--space-5); }
+.stage-meta { position: absolute; left: 0; right: 0; bottom: calc(var(--hint-h) + var(--space-2)); display: flex; justify-content: space-between; padding: 0 var(--space-5); }
 .stage-meta .label, .scrub-row .label { font-variant-numeric: tabular-nums; }
-.hint { text-align: center; color: var(--text-muted); font-size: var(--text-sm); line-height: 1.5; min-height: calc(var(--text-sm) * 1.5 + var(--space-4)); padding: 0 var(--space-5) var(--space-4); text-wrap: pretty; }
+.hint { align-self: end; pointer-events: none; text-align: center; color: var(--text-muted); font-size: var(--text-sm); line-height: 1.5; padding: 0 var(--space-5) var(--space-4); text-wrap: pretty; }
 .wrap > .status { text-align: center; margin-top: calc(-1 * var(--space-3)); }
 .wrap > .status:empty { display: none; }
 

@@ -58,3 +58,16 @@ for (const width of [1280, 640]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
   });
 }
+
+test("the word band is centred on the reader card, whatever sits below it", async ({ page }) => {
+  await boot(page);
+  await drop(page, SHORT);
+  await page.keyboard.press("Space"); await page.keyboard.press("Space");
+  await expect(page.locator("#hint")).toHaveText("Paused.");
+  const off = await page.evaluate(() => {
+    const card = document.querySelector(".lectern").getBoundingClientRect();
+    const [top, bottom] = [...document.querySelectorAll(".guide")].map(e => e.getBoundingClientRect());
+    return Math.abs((top.top + bottom.bottom) / 2 - (card.top + card.height / 2));
+  });
+  expect(off).toBeLessThan(1);
+});
